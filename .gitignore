@@ -1,0 +1,32 @@
+# Xcode
+.DS_Store
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Model files (too large for git)
+*.gguf
+OnDeviceCatalyst/qwen2.5-3b-instruct-q4_k_m.gguf
+Sources/OnDeviceCatalyst/qwen2.5-3b-instruct-q4_k_m.gguf
+
+# Build artifacts
+DerivedData/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.temp

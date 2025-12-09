@@ -156,6 +156,74 @@ public class LlamaInstance {
         
         // Don't need to update stored batch since this was just warmup
     }
+
+    // MARK: - Embeddings
+
+    /// Compute a single embedding vector for the given text using the current model/context.
+    ///
+    /// This is a synchronous helper intended for use by higher-level components like
+    /// memory systems (e.g. SwiftMem). It should not be called while generation is
+    /// in progress.
+    public func embed(text: String) throws -> [Float] {
+        guard isReady else {
+            throw CatalystError.engineNotInitialized
+        }
+        guard !isGenerating else {
+            throw CatalystError.generationFailed(details: "Cannot compute embeddings while generation is in progress")
+        }
+        guard let model = cModel, let context = cContext else {
+            throw CatalystError.engineNotInitialized
+        }
+
+        // Tokenize input
+        let tokens = try LlamaBridge.tokenize(
+            text: text,
+            model: model,
+            addBos: profile.architecture.requiresSpecialTokens
+        )
+        guard !tokens.isEmpty else {
+            throw CatalystError.tokenizationFailed(text: text, reason: "No tokens generated for embedding")
+        }
+
+        // Create a temporary batch configured for embeddings
+        let embSize = LlamaBridge.getEmbeddingSize(model)
+        var embBatch = try LlamaBridge.createBatch(
+            maxTokens: UInt32(tokens.count),
+            embeddingSize: embSize,
+            numSequences: 1
+        )
+        defer { LlamaBridge.freeBatch(embBatch) }
+
+        LlamaBridge.clearBatch(&embBatch)
+
+        var position: Int32 = 0
+        for token in tokens {
+            LlamaBridge.addTokenToBatch(
+                batch: &embBatch,
+                token: token,
+                position: position,
+                sequenceId: 0,
+                generateLogits: false
+            )
+            position += 1
+        }
+
+        // Run the batch to compute embeddings
+        try LlamaBridge.processBatch(context: context, batch: embBatch)
+
+        guard let embPtr = LlamaBridge.getEmbeddings(context: context) else {
+            throw CatalystError.generationFailed(details: "Failed to obtain embeddings from llama context")
+        }
+
+        let embCount = Int(embSize)
+        let buffer = UnsafeBufferPointer(start: embPtr, count: embCount)
+        let embedding = Array(buffer)
+
+        // Clear KV cache so this embedding pass does not pollute conversational context
+        LlamaBridge.clearKVCache(context)
+
+        return embedding
+    }
     
     private func handleInitializationError(_ error: CatalystError) async {
         print("Catalyst: Initialization failed - \(error.localizedDescription)")

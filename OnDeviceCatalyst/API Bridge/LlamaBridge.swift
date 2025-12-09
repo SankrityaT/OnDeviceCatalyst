@@ -198,6 +198,11 @@ public enum LlamaBridge {
     public static func getEosToken(_ model: CModel) -> CToken {
         return llama_token_eos(model)
     }
+
+    /// Get model embedding size (hidden dimension)
+    public static func getEmbeddingSize(_ model: CModel) -> Int32 {
+        return llama_n_embd(model)
+    }
     
     /// Check if token indicates end of generation
     public static func isEndOfGeneration(_ model: CModel, token: CToken) -> Bool {
@@ -319,6 +324,11 @@ public enum LlamaBridge {
     /// Get logits from last processed batch
     public static func getLogits(context: CContext, batchIndex: Int32 = -1) -> UnsafeMutablePointer<Float>? {
         return llama_get_logits_ith(context, batchIndex)
+    }
+
+    /// Get embeddings from last processed batch (when embeddingSize > 0 in batch)
+    public static func getEmbeddings(context: CContext) -> UnsafeMutablePointer<Float>? {
+        return llama_get_embeddings(context)
     }
     
     /// Sample token using greedy strategy

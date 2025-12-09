@@ -164,6 +164,10 @@ public class LlamaInstance {
     /// This is a synchronous helper intended for use by higher-level components like
     /// memory systems (e.g. SwiftMem). It should not be called while generation is
     /// in progress.
+    ///
+    /// For decoder-only models like Qwen2.5, we use mean pooling over the last token's
+    /// logits as a pseudo-embedding. This is not as good as a dedicated embedding model
+    /// but provides reasonable semantic similarity for memory retrieval.
     public func embed(text: String) throws -> [Float] {
         guard isReady else {
             throw CatalystError.engineNotInitialized
@@ -185,39 +189,73 @@ public class LlamaInstance {
             throw CatalystError.tokenizationFailed(text: text, reason: "No tokens generated for embedding")
         }
 
-        // Create a temporary batch configured for embeddings
         let embSize = LlamaBridge.getEmbeddingSize(model)
-        var embBatch = try LlamaBridge.createBatch(
-            maxTokens: UInt32(tokens.count),
-            embeddingSize: embSize,
-            numSequences: 1
-        )
-        defer { LlamaBridge.freeBatch(embBatch) }
-
-        LlamaBridge.clearBatch(&embBatch)
-
+        
+        // Use the regular batch (not embedding batch) and request logits for the last token
+        guard var batch = cBatch else {
+            throw CatalystError.engineNotInitialized
+        }
+        
+        // Clear and populate batch
+        LlamaBridge.clearBatch(&batch)
+        
         var position: Int32 = 0
-        for token in tokens {
+        for (index, token) in tokens.enumerated() {
+            // Only generate logits for the last token
+            let isLastToken = index == tokens.count - 1
             LlamaBridge.addTokenToBatch(
-                batch: &embBatch,
+                batch: &batch,
                 token: token,
                 position: position,
                 sequenceId: 0,
-                generateLogits: false
+                generateLogits: isLastToken
             )
             position += 1
         }
 
-        // Run the batch to compute embeddings
-        try LlamaBridge.processBatch(context: context, batch: embBatch)
+        // Run the batch
+        try LlamaBridge.processBatch(context: context, batch: batch)
+        
+        // Update the stored batch
+        cBatch = batch
 
-        guard let embPtr = LlamaBridge.getEmbeddings(context: context) else {
-            throw CatalystError.generationFailed(details: "Failed to obtain embeddings from llama context")
+        // Try to get embeddings first (works for encoder models)
+        if let embPtr = LlamaBridge.getEmbeddings(context: context) {
+            let embCount = Int(embSize)
+            let buffer = UnsafeBufferPointer(start: embPtr, count: embCount)
+            let embedding = Array(buffer)
+            LlamaBridge.clearKVCache(context)
+            return embedding
         }
-
-        let embCount = Int(embSize)
-        let buffer = UnsafeBufferPointer(start: embPtr, count: embCount)
-        let embedding = Array(buffer)
+        
+        // For decoder-only models, use the last token's logits as pseudo-embedding
+        // We reduce the vocab-sized logits to embSize dimensions via chunked averaging
+        guard let logitsPtr = LlamaBridge.getLogits(context: context, batchIndex: Int32(tokens.count - 1)) else {
+            throw CatalystError.generationFailed(details: "Failed to obtain logits for embedding")
+        }
+        
+        let vocabSize = Int(llama_n_vocab(model))
+        let targetDim = Int(embSize)
+        
+        // Create embedding by chunked mean pooling of logits
+        var embedding = [Float](repeating: 0.0, count: targetDim)
+        let chunkSize = vocabSize / targetDim
+        
+        for i in 0..<targetDim {
+            var sum: Float = 0.0
+            let start = i * chunkSize
+            let end = min(start + chunkSize, vocabSize)
+            for j in start..<end {
+                sum += logitsPtr[j]
+            }
+            embedding[i] = sum / Float(end - start)
+        }
+        
+        // L2 normalize the embedding
+        let norm = sqrt(embedding.reduce(0) { $0 + $1 * $1 })
+        if norm > 0 {
+            embedding = embedding.map { $0 / norm }
+        }
 
         // Clear KV cache so this embedding pass does not pollute conversational context
         LlamaBridge.clearKVCache(context)

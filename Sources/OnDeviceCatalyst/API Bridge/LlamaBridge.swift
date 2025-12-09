@@ -292,16 +292,17 @@ public enum LlamaBridge {
     ) {
         let index = Int(batch.n_tokens)
         
-        batch.token[index] = token
-        batch.pos[index] = llama_pos(position)
-        batch.n_seq_id[index] = 1
+        // All batch arrays may be nil for embedding batches - guard each access
+        batch.token?[index] = token
+        batch.pos?[index] = llama_pos(position)
+        batch.n_seq_id?[index] = 1
         
         // seq_id may be nil for embedding batches - only set if available
         if let seqIdPtr = batch.seq_id?[index] {
             seqIdPtr.pointee = llama_seq_id(sequenceId)
         }
         
-        batch.logits[index] = generateLogits ? 1 : 0
+        batch.logits?[index] = generateLogits ? 1 : 0
         
         batch.n_tokens += 1
     }

@@ -87,6 +87,10 @@ public struct StopSequenceHandler {
                 "<|im_start|>system"
             ]
             
+        case .bert:
+            // BERT models don't do text generation, no stop sequences needed
+            return []
+            
         case .unknown:
             // Generic ChatML fallback
             return [

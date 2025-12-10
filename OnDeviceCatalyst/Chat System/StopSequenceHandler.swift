@@ -254,6 +254,8 @@ extension ModelArchitecture {
             return [] // Uses simple format, no critical sequences
         case .commandR:
             return ["<|END_OF_TURN_TOKEN|>"]
+        case .bert:
+            return [] // BERT models don't do text generation
         case .unknown:
             return ["<|im_end|>"] // ChatML fallback
         }

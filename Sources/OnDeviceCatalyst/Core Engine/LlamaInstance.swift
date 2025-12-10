@@ -112,8 +112,13 @@ public class LlamaInstance {
             publishProgress(.loading("Initializing sampling engine"))
             samplingEngine = SamplingEngine(model: model, context: context)
             
-            publishProgress(.loading("Performing warmup inference"))
-            try await performWarmup()
+            // Skip warmup for encoder-only models (BERT, etc.) - they don't do generation
+            if !profile.architecture.isEncoderOnly {
+                publishProgress(.loading("Performing warmup inference"))
+                try await performWarmup()
+            } else {
+                publishProgress(.loading("Encoder model ready (no warmup needed)"))
+            }
             
             publishProgress(.ready("Model ready for inference"))
             
@@ -179,11 +184,13 @@ public class LlamaInstance {
             throw CatalystError.engineNotInitialized
         }
 
-        // Tokenize input
+        let isEncoder = profile.architecture.isEncoderOnly
+        
+        // Tokenize input - BERT models handle their own special tokens via tokenizer
         let tokens = try LlamaBridge.tokenize(
             text: text,
             model: model,
-            addBos: profile.architecture.requiresSpecialTokens
+            addBos: !isEncoder && profile.architecture.requiresSpecialTokens
         )
         guard !tokens.isEmpty else {
             throw CatalystError.tokenizationFailed(text: text, reason: "No tokens generated for embedding")
@@ -191,76 +198,48 @@ public class LlamaInstance {
 
         let embSize = LlamaBridge.getEmbeddingSize(model)
         
-        // Use the regular batch (not embedding batch) and request logits for the last token
-        guard var batch = cBatch else {
-            throw CatalystError.engineNotInitialized
-        }
+        // Create a temporary batch configured for embeddings
+        var embBatch = try LlamaBridge.createBatch(
+            maxTokens: UInt32(tokens.count),
+            embeddingSize: embSize,
+            numSequences: 1
+        )
+        defer { LlamaBridge.freeBatch(embBatch) }
         
-        // Clear and populate batch
-        LlamaBridge.clearBatch(&batch)
+        LlamaBridge.clearBatch(&embBatch)
         
         var position: Int32 = 0
-        for (index, token) in tokens.enumerated() {
-            // Only generate logits for the last token
-            let isLastToken = index == tokens.count - 1
+        for token in tokens {
             LlamaBridge.addTokenToBatch(
-                batch: &batch,
+                batch: &embBatch,
                 token: token,
                 position: position,
                 sequenceId: 0,
-                generateLogits: isLastToken
+                generateLogits: false  // Embeddings don't need logits
             )
             position += 1
         }
 
-        // Run the batch
-        try LlamaBridge.processBatch(context: context, batch: batch)
-        
-        // Update the stored batch
-        cBatch = batch
+        // Run the batch to compute embeddings
+        try LlamaBridge.processBatch(context: context, batch: embBatch)
 
-        // Try to get embeddings first (works for encoder models)
+        // Get pooled embeddings
         if let embPtr = LlamaBridge.getEmbeddings(context: context) {
             let embCount = Int(embSize)
             let buffer = UnsafeBufferPointer(start: embPtr, count: embCount)
-            let embedding = Array(buffer)
+            var embedding = Array(buffer)
+            
+            // L2 normalize
+            let norm = sqrt(embedding.reduce(0) { $0 + $1 * $1 })
+            if norm > 0 {
+                embedding = embedding.map { $0 / norm }
+            }
+            
             LlamaBridge.clearKVCache(context)
             return embedding
         }
         
-        // For decoder-only models, use the last token's logits as pseudo-embedding
-        // We reduce the vocab-sized logits to embSize dimensions via chunked averaging
-        guard let logitsPtr = LlamaBridge.getLogits(context: context, batchIndex: Int32(tokens.count - 1)) else {
-            throw CatalystError.generationFailed(details: "Failed to obtain logits for embedding")
-        }
-        
-        let vocabSize = Int(llama_n_vocab(model))
-        let targetDim = Int(embSize)
-        
-        // Create embedding by chunked mean pooling of logits
-        var embedding = [Float](repeating: 0.0, count: targetDim)
-        let chunkSize = vocabSize / targetDim
-        
-        for i in 0..<targetDim {
-            var sum: Float = 0.0
-            let start = i * chunkSize
-            let end = min(start + chunkSize, vocabSize)
-            for j in start..<end {
-                sum += logitsPtr[j]
-            }
-            embedding[i] = sum / Float(end - start)
-        }
-        
-        // L2 normalize the embedding
-        let norm = sqrt(embedding.reduce(0) { $0 + $1 * $1 })
-        if norm > 0 {
-            embedding = embedding.map { $0 / norm }
-        }
-
-        // Clear KV cache so this embedding pass does not pollute conversational context
-        LlamaBridge.clearKVCache(context)
-
-        return embedding
+        throw CatalystError.generationFailed(details: "Failed to obtain embeddings from llama context")
     }
     
     private func handleInitializationError(_ error: CatalystError) async {

@@ -112,8 +112,13 @@ public class LlamaInstance {
             publishProgress(.loading("Initializing sampling engine"))
             samplingEngine = SamplingEngine(model: model, context: context)
             
-            publishProgress(.loading("Performing warmup inference"))
-            try await performWarmup()
+            // Skip warmup for encoder-only models (BERT, etc.) - they don't do generation
+            if !profile.architecture.isEncoderOnly {
+                publishProgress(.loading("Performing warmup inference"))
+                try await performWarmup()
+            } else {
+                publishProgress(.loading("Encoder model ready (no warmup needed)"))
+            }
             
             publishProgress(.ready("Model ready for inference"))
             
@@ -217,7 +222,13 @@ public class LlamaInstance {
 
         let embCount = Int(embSize)
         let buffer = UnsafeBufferPointer(start: embPtr, count: embCount)
-        let embedding = Array(buffer)
+        var embedding = Array(buffer)
+        
+        // L2 normalize
+        let norm = sqrt(embedding.reduce(0) { $0 + $1 * $1 })
+        if norm > 0 {
+            embedding = embedding.map { $0 / norm }
+        }
 
         // Clear KV cache so this embedding pass does not pollute conversational context
         LlamaBridge.clearKVCache(context)

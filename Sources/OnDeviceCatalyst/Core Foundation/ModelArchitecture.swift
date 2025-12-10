@@ -28,6 +28,7 @@ public enum ModelArchitecture: String, CaseIterable, Codable, Hashable {
     case commandR = "command_r"
     case yi = "yi"
     case openChat = "openchat"
+    case bert = "bert"           // BERT-based embedding models (bge-small, etc.)
     case unknown = "unknown"
     
     /// Attempts to detect architecture from model filename or path
@@ -102,6 +103,11 @@ public enum ModelArchitecture: String, CaseIterable, Codable, Hashable {
             return .openChat
         }
         
+        // BERT-based embedding models
+        if filename.contains("bge-") || filename.contains("bert") || filename.contains("e5-") || filename.contains("gte-") {
+            return .bert
+        }
+        
         // Fallback to general Llama if contains "llama" but no specific version
         if filename.contains("llama") {
             return .llama2
@@ -138,6 +144,18 @@ public enum ModelArchitecture: String, CaseIterable, Codable, Hashable {
         case .llama3, .llama31:
             return true
         case .qwen2, .qwen25, .codeQwen:
+            return true
+        case .bert:
+            return false  // BERT uses [CLS] and [SEP] handled by tokenizer
+        default:
+            return false
+        }
+    }
+    
+    /// Indicates if this is an encoder-only model (for embeddings, not generation)
+    public var isEncoderOnly: Bool {
+        switch self {
+        case .bert:
             return true
         default:
             return false

@@ -70,6 +70,10 @@ public struct StandardPromptFormatter: PromptFormatting {
         case .openChat:
             return formatOpenChat(turns: turns, systemPrompt: effectiveSystemPrompt)
             
+        case .bert:
+            // BERT models don't do text generation, return empty string
+            return ""
+            
         case .unknown:
             print("Catalyst: Unknown architecture, using ChatML fallback")
             return formatChatML(turns: turns, systemPrompt: effectiveSystemPrompt)

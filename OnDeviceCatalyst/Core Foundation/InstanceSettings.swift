@@ -116,6 +116,21 @@ public struct InstanceSettings: Codable, Hashable {
         #endif
     }
     
+    /// Embedding-optimized settings for semantic search models (e.g., bge-small)
+    /// Optimized for fast embedding generation with minimal context requirements
+    public static func embedding(outputDimensions: Int = 384) -> InstanceSettings {
+        return InstanceSettings(
+            contextLength: 512,         // Small context for embedding models
+            batchSize: 128,             // Smaller batch for faster processing
+            gpuLayers: 99,              // Full GPU acceleration
+            cpuThreads: 4,              // Fewer threads needed
+            enableMemoryMapping: true,
+            enableMemoryLocking: false,
+            useFlashAttention: false,   // Not needed for embeddings
+            seed: 0
+        )
+    }
+    
     // MARK: - Validation
     
     /// Validates that the settings are reasonable and compatible

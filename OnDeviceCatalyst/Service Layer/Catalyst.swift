@@ -333,6 +333,73 @@ public class Catalyst {
         conversation.addTurn(assistantTurn)
     }
     
+    // MARK: - Embedding Generation
+    
+    /// Generate embedding vector for text using a model
+    /// Useful for semantic search, RAG systems, and memory retrieval
+    /// Returns L2-normalized embedding vector
+    public func embed(
+        text: String,
+        using profile: ModelProfile,
+        settings: InstanceSettings = .balanced
+    ) async throws -> [Float] {
+        
+        let (instance, loadStream) = await self.instance(
+            for: profile,
+            settings: settings,
+            predictionConfig: .balanced
+        )
+        
+        // Wait for model to be ready
+        for await progress in loadStream {
+            if progress.isComplete {
+                break
+            }
+        }
+        
+        guard instance.isReady else {
+            throw CatalystError.engineNotInitialized
+        }
+        
+        // Generate embedding
+        return try instance.embed(text: text)
+    }
+    
+    /// Generate embeddings for multiple texts (batch processing)
+    /// More efficient than calling embed() multiple times
+    public func embedBatch(
+        texts: [String],
+        using profile: ModelProfile,
+        settings: InstanceSettings = .balanced
+    ) async throws -> [[Float]] {
+        
+        let (instance, loadStream) = await self.instance(
+            for: profile,
+            settings: settings,
+            predictionConfig: .balanced
+        )
+        
+        // Wait for model to be ready
+        for await progress in loadStream {
+            if progress.isComplete {
+                break
+            }
+        }
+        
+        guard instance.isReady else {
+            throw CatalystError.engineNotInitialized
+        }
+        
+        // Generate embeddings sequentially
+        var embeddings: [[Float]] = []
+        for text in texts {
+            let embedding = try instance.embed(text: text)
+            embeddings.append(embedding)
+        }
+        
+        return embeddings
+    }
+    
     // MARK: - Instance Lifecycle
     
     /// Release an instance (decrements reference count)

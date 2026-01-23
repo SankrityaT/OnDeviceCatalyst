@@ -28,9 +28,6 @@ let package = Package(
                 .product(name: "llama", package: "llama.cpp")
             ],
             path: "Sources/OnDeviceCatalyst",
-            resources: [
-                .process("Resources")
-            ],
             cSettings: [
                 .headerSearchPath("include"),
                 .define("GGML_USE_METAL"),

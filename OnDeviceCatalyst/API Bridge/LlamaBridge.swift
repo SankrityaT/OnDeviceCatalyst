@@ -331,6 +331,11 @@ public enum LlamaBridge {
         return llama_get_embeddings(context)
     }
     
+    /// Get embeddings for a specific sequence (required for BERT/encoder-only models)
+    public static func getEmbeddingsSeq(context: CContext, sequenceId: Int32) -> UnsafeMutablePointer<Float>? {
+        return llama_get_embeddings_seq(context, sequenceId)
+    }
+    
     /// Sample token using greedy strategy
     public static func sampleGreedy(model: CModel, context: CContext, logits: UnsafeMutablePointer<Float>) -> CToken {
         let vocabSize = llama_n_vocab(model)

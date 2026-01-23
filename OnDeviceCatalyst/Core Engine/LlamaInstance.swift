@@ -261,7 +261,8 @@ public class LlamaInstance {
         // Run the batch to compute embeddings
         try LlamaBridge.processBatch(context: context, batch: embBatch)
 
-        guard let embPtr = LlamaBridge.getEmbeddings(context: context) else {
+        // For encoder-only models (BERT), use sequence-specific API
+        guard let embPtr = LlamaBridge.getEmbeddingsSeq(context: context, sequenceId: 0) else {
             throw CatalystError.generationFailed(details: "Failed to obtain embeddings from llama context")
         }
 

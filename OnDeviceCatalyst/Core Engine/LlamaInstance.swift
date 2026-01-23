@@ -690,7 +690,11 @@ public class LlamaInstance {
     private func publishProgress(_ progress: LoadProgress) {
         loadingContinuation?.yield(progress)
         
-        if case .ready = progress, case .failed = progress {
+        // Finish the stream when initialization completes (success or failure)
+        if case .ready = progress {
+            loadingContinuation?.finish()
+            loadingContinuation = nil
+        } else if case .failed = progress {
             loadingContinuation?.finish()
             loadingContinuation = nil
         }

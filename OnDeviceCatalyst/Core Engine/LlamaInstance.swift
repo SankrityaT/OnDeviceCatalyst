@@ -189,7 +189,52 @@ public class LlamaInstance {
         guard !tokens.isEmpty else {
             throw CatalystError.tokenizationFailed(text: text, reason: "No tokens generated for embedding")
         }
-
+        
+        // Handle long texts by chunking and averaging embeddings
+        let maxTokens = Int(settings.batchSize) - 2 // Leave room for special tokens
+        
+        if tokens.count <= maxTokens {
+            // Single chunk - process normally
+            return try embedChunk(tokens: tokens, model: model, context: context)
+        } else {
+            // Multiple chunks - split, embed each, and average
+            var allEmbeddings: [[Float]] = []
+            var startIdx = 0
+            
+            while startIdx < tokens.count {
+                let endIdx = min(startIdx + maxTokens, tokens.count)
+                let chunk = Array(tokens[startIdx..<endIdx])
+                
+                let chunkEmbedding = try embedChunk(tokens: chunk, model: model, context: context)
+                allEmbeddings.append(chunkEmbedding)
+                
+                startIdx = endIdx
+            }
+            
+            // Average all chunk embeddings
+            let embSize = allEmbeddings[0].count
+            var avgEmbedding = [Float](repeating: 0, count: embSize)
+            
+            for embedding in allEmbeddings {
+                for i in 0..<embSize {
+                    avgEmbedding[i] += embedding[i]
+                }
+            }
+            
+            let numChunks = Float(allEmbeddings.count)
+            avgEmbedding = avgEmbedding.map { $0 / numChunks }
+            
+            // L2 normalize the averaged embedding
+            let norm = sqrt(avgEmbedding.reduce(0) { $0 + $1 * $1 })
+            if norm > 0 {
+                avgEmbedding = avgEmbedding.map { $0 / norm }
+            }
+            
+            return avgEmbedding
+        }
+    }
+    
+    private func embedChunk(tokens: [Int32], model: CModel, context: CContext) throws -> [Float] {
         // Create a temporary batch configured for embeddings
         let embSize = LlamaBridge.getEmbeddingSize(model)
         var embBatch = try LlamaBridge.createBatch(

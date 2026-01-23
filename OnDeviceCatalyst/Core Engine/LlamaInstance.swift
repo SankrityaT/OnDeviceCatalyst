@@ -247,13 +247,15 @@ public class LlamaInstance {
         LlamaBridge.clearBatch(&embBatch)
 
         var position: Int32 = 0
-        for token in tokens {
+        for (index, token) in tokens.enumerated() {
+            // For BERT models, we need logits on the last token to get embeddings
+            let isLastToken = index == tokens.count - 1
             LlamaBridge.addTokenToBatch(
                 batch: &embBatch,
                 token: token,
                 position: position,
                 sequenceId: 0,
-                generateLogits: false
+                generateLogits: isLastToken
             )
             position += 1
         }

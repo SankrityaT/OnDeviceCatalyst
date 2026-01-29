@@ -3,6 +3,17 @@
 
 import PackageDescription
 
+// ============================================================================
+// CONFIGURATION - Update these values before releasing
+// ============================================================================
+
+// Checksum for the xcframework zip
+// Compute with: swift package compute-checksum llama.xcframework.zip
+// UPDATE THIS after uploading to GitHub releases!
+let xcframeworkChecksum = "8a3bb0e2d153ad68438704636b94ffe613fc8e953beb7aefa23a9ad5b8768071"
+
+// ============================================================================
+
 let package = Package(
     name: "OnDeviceCatalyst",
     platforms: [
@@ -15,31 +26,19 @@ let package = Package(
             targets: ["OnDeviceCatalyst"]
         ),
     ],
-    dependencies: [
-        .package(
-            url: "https://github.com/ggerganov/llama.cpp",
-            revision: "9b75f03cd2ec9cc482084049d87a0f08f9f01517"
-        )
-    ],
+    dependencies: [],
     targets: [
+        // llama.cpp XCFramework with full model support:
+        // Qwen3, Gemma3, Llama 3.2/3.3, Phi-4, DeepSeek V3, and more
+        .binaryTarget(
+            name: "llama",
+            url: "https://github.com/SankrityaT/OnDeviceCatalyst/releases/download/v1.0.0/llama.xcframework.zip",
+            checksum: xcframeworkChecksum
+        ),
         .target(
             name: "OnDeviceCatalyst",
-            dependencies: [
-                .product(name: "llama", package: "llama.cpp")
-            ],
+            dependencies: ["llama"],
             path: "Sources/OnDeviceCatalyst",
-            cSettings: [
-                .headerSearchPath("include"),
-                .define("GGML_USE_METAL"),
-                .define("GGML_USE_ACCELERATE"),
-                .unsafeFlags(["-fmodules", "-fcxx-modules"])
-            ],
-            cxxSettings: [
-                .headerSearchPath("include"),
-                .define("GGML_USE_METAL"),
-                .define("GGML_USE_ACCELERATE"),
-                .unsafeFlags(["-fmodules", "-fcxx-modules"])
-            ],
             linkerSettings: [
                 .linkedFramework("Metal"),
                 .linkedFramework("MetalKit"),

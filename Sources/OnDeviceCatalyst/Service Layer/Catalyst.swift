@@ -13,7 +13,9 @@
 //
 
 import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 
 /// Result type for safe model loading operations
 public enum LoadResult {
@@ -328,9 +330,73 @@ public class Catalyst {
             completionReason: metadata?.completionReason,
             modelUsed: modelName
         )
-        
+
         let assistantTurn = Turn.assistant(response, metadata: assistantMetadata)
         conversation.addTurn(assistantTurn)
+    }
+
+    // MARK: - Tool Calling Support
+
+    /// Generate response with tool calling support
+    /// Tools are formatted into the system prompt and parsed from the response
+    public func generateWithTools(
+        conversation: [Turn],
+        systemPrompt: String,
+        tools: [CatalystTool],
+        using profile: ModelProfile,
+        settings: InstanceSettings = .balanced,
+        predictionConfig: PredictionConfig = .balanced
+    ) async throws -> AsyncThrowingStream<StreamChunk, Error> {
+
+        // Format tools into the system prompt based on architecture
+        let toolPrompt: String
+        if profile.architecture == .qwen3 {
+            toolPrompt = ToolPromptFormatter.formatForQwen3(tools)
+        } else {
+            toolPrompt = ToolPromptFormatter.formatAsText(tools)
+        }
+
+        let enhancedSystemPrompt = systemPrompt + toolPrompt
+
+        return try await generate(
+            conversation: conversation,
+            systemPrompt: enhancedSystemPrompt,
+            using: profile,
+            settings: settings,
+            predictionConfig: predictionConfig
+        )
+    }
+
+    /// Simple completion with tool support - returns text and any tool calls
+    public func completeWithTools(
+        prompt: String,
+        systemPrompt: String = "You are a helpful AI assistant.",
+        tools: [CatalystTool],
+        using profile: ModelProfile,
+        settings: InstanceSettings = .balanced,
+        predictionConfig: PredictionConfig = .balanced
+    ) async throws -> (text: String, toolCalls: [CatalystToolCall]) {
+
+        let conversation = [Turn.user(prompt)]
+        let stream = try await generateWithTools(
+            conversation: conversation,
+            systemPrompt: systemPrompt,
+            tools: tools,
+            using: profile,
+            settings: settings,
+            predictionConfig: predictionConfig
+        )
+
+        var response = ""
+        for try await chunk in stream {
+            response += chunk.content
+            if chunk.isComplete {
+                break
+            }
+        }
+
+        // Parse tool calls from response
+        return ToolCallParser.parse(from: response)
     }
     
     // MARK: - Instance Lifecycle
@@ -432,6 +498,7 @@ public class Catalyst {
     // MARK: - System Integration
     
     private func setupNotificationObservers() {
+        #if os(iOS)
         NotificationCenter.default.addObserver(
             forName: UIApplication.didEnterBackgroundNotification,
             object: nil,
@@ -441,7 +508,7 @@ public class Catalyst {
                 await self?.handleAppBackground()
             }
         }
-        
+
         NotificationCenter.default.addObserver(
             forName: UIApplication.willTerminateNotification,
             object: nil,
@@ -451,6 +518,7 @@ public class Catalyst {
                 await self?.handleAppTermination()
             }
         }
+        #endif
     }
     
     private func handleAppBackground() async {

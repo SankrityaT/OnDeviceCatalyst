@@ -35,7 +35,11 @@ public class LlamaInstance {
     private var contextTokens: [CToken] = []
     private var isGenerating: Bool = false
     private var shouldInterrupt: Bool = false
-    
+    private var isCleanedUp: Bool = false
+
+    /// Lock for thread-safe access to model/context pointers
+    private let resourceLock = NSLock()
+
     private var loadingContinuation: AsyncStream<LoadProgress>.Continuation?
     
     // MARK: - Initialization
@@ -130,36 +134,34 @@ public class LlamaInstance {
     }
     
     private func performWarmup() async throws {
-        guard let model = cModel, let context = cContext, let batch = cBatch else {
+        guard let model = cModel, let context = cContext else {
             throw CatalystError.engineNotInitialized
         }
-        
+
         // Tokenize a simple warmup prompt
         let warmupText = "Hello"
         let tokens = try LlamaBridge.tokenize(text: warmupText, model: model, addBos: true)
-        
+
         guard !tokens.isEmpty else {
             throw CatalystError.tokenizationFailed(text: warmupText, reason: "No tokens generated")
         }
-        
-        // Create a temporary batch for warmup
-        var warmupBatch = batch
-        LlamaBridge.clearBatch(&warmupBatch)
-        LlamaBridge.addTokenToBatch(
-            batch: &warmupBatch,
-            token: tokens[0],
-            position: 0,
-            sequenceId: 0,
-            generateLogits: true
-        )
-        
-        try LlamaBridge.processBatch(context: context, batch: warmupBatch)
-        
-        // Clear context for actual use
+
+        print("LlamaInstance.performWarmup: Processing \(tokens.count) warmup tokens...")
+
+        // Enable warmup mode (activates all tensors to cache weights)
+        llama_set_warmup(context, true)
+
+        // Process one token for warmup
+        try LlamaBridge.processTokensDirect(context: context, tokens: [tokens[0]])
+
+        // Disable warmup mode
+        llama_set_warmup(context, false)
+
+        print("LlamaInstance.performWarmup: Warmup complete")
+
+        // Clear KV cache and position tracking for actual use
         LlamaBridge.clearKVCache(context)
         contextTokens.removeAll()
-        
-        // Don't need to update stored batch since this was just warmup
     }
 
     // MARK: - Embeddings
@@ -343,28 +345,41 @@ public class LlamaInstance {
     }
     
     private func cleanup() {
+        resourceLock.lock()
+        defer { resourceLock.unlock() }
+
+        // Mark as cleaned up first to prevent any new access
+        isCleanedUp = true
+        shouldInterrupt = true
+
         if let batch = cBatch {
             LlamaBridge.freeBatch(batch)
             cBatch = nil
         }
-        
+
         if let context = cContext {
             LlamaBridge.freeContext(context)
             cContext = nil
         }
-        
+
         if let model = cModel {
             LlamaBridge.freeModel(model)
             cModel = nil
         }
-        
+
         samplingEngine = nil
         contextTokens.removeAll()
         isGenerating = false
-        shouldInterrupt = false
-        
+
         loadingContinuation?.finish()
         loadingContinuation = nil
+    }
+
+    /// Thread-safe check if resources are still valid
+    private func resourcesAreValid() -> Bool {
+        resourceLock.lock()
+        defer { resourceLock.unlock() }
+        return !isCleanedUp && cModel != nil && cContext != nil
     }
     
     // MARK: - Generation
@@ -472,6 +487,13 @@ public class LlamaInstance {
             }
             
             print("LlamaInstance.performGeneration: Processing prompt tokens...")
+
+            // Clear KV cache before starting fresh generation to ensure clean state
+            if contextTokens.isEmpty {
+                print("LlamaInstance.performGeneration: Fresh generation - clearing KV cache")
+                LlamaBridge.clearKVCache(cContext!)
+            }
+
             // Process prompt tokens
             try await processPromptTokens(promptTokens)
             print("LlamaInstance.performGeneration: ✅ Prompt tokens processed successfully")
@@ -586,28 +608,19 @@ public class LlamaInstance {
         
         print("Catalyst: Starting generation with \(contextTokens.count) context tokens")
         print("Catalyst: Max tokens: \(maxTokens)")
-        
-        // Process an empty batch to prepare for logits generation
-        LlamaBridge.clearBatch(&batch)
-        LlamaBridge.addTokenToBatch(
-            batch: &batch,
-            token: contextTokens.last ?? 0,
-            position: Int32(contextTokens.count - 1),
-            sequenceId: 0,
-            generateLogits: true
-        )
-        
-        print("Catalyst: Processing initial batch...")
-        try LlamaBridge.processBatch(context: context, batch: batch)
-        print("Catalyst: Initial batch processed, starting generation loop")
+
+        // Logits for the last prompt token are already available from processPromptTokens
+        // No need to re-process - just start the generation loop
+        print("Catalyst: Starting generation loop (logits ready from prompt processing)")
         
         while generatedCount < maxTokens {
-            guard !shouldInterrupt else {
+            // Check for interruption or cleanup
+            guard !shouldInterrupt && resourcesAreValid() else {
                 let chunk = StreamChunk.completion(reason: .userCancelled)
                 continuation.yield(chunk)
                 return generatedCount
             }
-            
+
             // Get logits and sample next token
             guard let logits = LlamaBridge.getLogits(context: context, batchIndex: -1) else {
                 print("Catalyst: ERROR - Failed to get logits at generation step \(generatedCount)")
@@ -625,6 +638,13 @@ public class LlamaInstance {
             
             print("Catalyst: Sampled token: \(sampledToken)")
             
+            // Safety check - ensure model is still valid before accessing vocab
+            guard resourcesAreValid() else {
+                let chunk = StreamChunk.completion(reason: .userCancelled)
+                continuation.yield(chunk)
+                return generatedCount
+            }
+
             // Check for end of generation
             if LlamaBridge.isEndOfGeneration(model, token: sampledToken) {
                 print("Catalyst: End of generation token detected")
@@ -632,8 +652,8 @@ public class LlamaInstance {
                 continuation.yield(chunk)
                 return generatedCount
             }
-            
-            // Convert token to text
+
+            // Convert token to text (requires valid model for vocab access)
             let tokenText = LlamaBridge.detokenize(token: sampledToken, model: model)
             
             // Debug: Log token generation
@@ -680,11 +700,10 @@ public class LlamaInstance {
             )
             
             try LlamaBridge.processBatch(context: context, batch: batch)
-            
-            // Minimal yielding for maximum speed
-            if generatedCount % 50 == 0 {
-                await Task.yield()
-            }
+
+            // Yield frequently for smooth UI streaming
+            // With GPU acceleration this won't hurt performance much
+            await Task.yield()
         }
         
         // Max tokens reached

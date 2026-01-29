@@ -132,23 +132,27 @@ public enum DeviceOptimizer {
     }
     
     /// Classifies device performance tier based on identifier
+    /// Note: Device identifiers use format "iPhoneXX,Y" where XX is generation number
+    /// iPhone 16 series = iPhone17,x, iPhone 15 = iPhone16,x, iPhone 14 = iPhone15,x, etc.
     private static func classifyDeviceTier(identifier: String) -> DeviceTier {
         let id = identifier.lowercased()
-        
+
         // High-performance devices (iPhone 13+, iPad Pro M1+)
-        if id.contains("iphone16") || id.contains("iphone15") || id.contains("iphone14") || id.contains("iphone13") ||
-           id.contains("ipad13") || id.contains("ipad14") || // iPad Pro M1/M2
+        // iPhone 16 = iPhone17,x, iPhone 15 = iPhone16,x, iPhone 14 = iPhone15,x, iPhone 13 = iPhone14,x
+        if id.contains("iphone17") || id.contains("iphone16") || id.contains("iphone15") || id.contains("iphone14") ||
+           id.contains("ipad13") || id.contains("ipad14") || id.contains("ipad15") || // iPad Pro M1/M2/M4
            id.contains("mac") {
             return .high
         }
-        
+
         // Medium-performance devices (iPhone 11-12, iPad Air 4+)
-        if id.contains("iphone12") || id.contains("iphone11") ||
+        // iPhone 12 = iPhone13,x, iPhone 11 = iPhone12,x
+        if id.contains("iphone13") || id.contains("iphone12") ||
            id.contains("ipad11") || id.contains("ipad12") || // iPad Air 4/5
            id.contains("ipad8") || id.contains("ipad9") {    // iPad 8th/9th gen
             return .medium
         }
-        
+
         // Low-performance devices (older iPhones, base iPads)
         return .low
     }

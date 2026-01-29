@@ -210,6 +210,7 @@ public class ModelCache {
     // MARK: - Memory Management
     
     private func setupMemoryWarningObserver() {
+        #if os(iOS)
         NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
             object: nil,
@@ -218,6 +219,7 @@ public class ModelCache {
             print("Catalyst: Received memory warning, clearing cache")
             self?.handleMemoryWarning()
         }
+        #endif
     }
     
     private func handleMemoryWarning() {

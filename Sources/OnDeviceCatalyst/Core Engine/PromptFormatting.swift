@@ -39,41 +39,44 @@ public struct StandardPromptFormatter: PromptFormatting {
         switch architecture {
         case .llama2, .codeLlama:
             return formatLlama2(turns: turns, systemPrompt: effectiveSystemPrompt)
-            
-        case .llama3, .llama31:
+
+        case .llama3, .llama31, .llama32, .llama33:
             return formatLlama3(turns: turns, systemPrompt: effectiveSystemPrompt)
-            
-        case .mistral, .mistralInstruct:
+
+        case .mistral, .mistralInstruct, .mistralSmall:
             return formatMistral(turns: turns, systemPrompt: effectiveSystemPrompt)
-            
+
         case .mixtral:
             return formatMixtral(turns: turns, systemPrompt: effectiveSystemPrompt)
-            
-        case .phi3, .phi35:
+
+        case .phi3, .phi35, .phi4:
             return formatPhi3(turns: turns, systemPrompt: effectiveSystemPrompt)
-            
-        case .gemma, .gemma2:
+
+        case .gemma, .gemma2, .gemma3:
             return formatGemma(turns: turns, systemPrompt: effectiveSystemPrompt)
-            
-        case .qwen2, .qwen25, .codeQwen:
-            return formatQwen(turns: turns, systemPrompt: effectiveSystemPrompt)
-            
-        case .deepSeek, .deepSeekCoder:
+
+        case .qwen2, .qwen25, .qwen3, .codeQwen, .qwenVL:
+            return formatQwen(turns: turns, systemPrompt: effectiveSystemPrompt, architecture: architecture)
+
+        case .deepSeek, .deepSeekCoder, .deepSeekV3:
             return formatDeepSeek(turns: turns, systemPrompt: effectiveSystemPrompt)
-            
+
+        case .starcoder:
+            return formatStarCoder(turns: turns, systemPrompt: effectiveSystemPrompt)
+
         case .commandR:
             return formatCommandR(turns: turns, systemPrompt: effectiveSystemPrompt)
-            
-        case .yi:
-            return formatYi(turns: turns, systemPrompt: effectiveSystemPrompt)
-            
-        case .openChat:
-            return formatOpenChat(turns: turns, systemPrompt: effectiveSystemPrompt)
-            
-        case .bert:
-            // BERT models don't do text generation, return empty string
+
+        case .yi, .openChat, .internLM, .olmo:
+            return formatChatML(turns: turns, systemPrompt: effectiveSystemPrompt)
+
+        case .mamba, .rwkv:
+            return formatRecurrent(turns: turns, systemPrompt: effectiveSystemPrompt)
+
+        case .bert, .nomic:
+            // Embedding models don't do text generation, return empty string
             return ""
-            
+
         case .unknown:
             print("Catalyst: Unknown architecture, using ChatML fallback")
             return formatChatML(turns: turns, systemPrompt: effectiveSystemPrompt)
@@ -201,9 +204,17 @@ public struct StandardPromptFormatter: PromptFormatting {
     }
     
     // MARK: - Qwen Format (ChatML-based)
-    
-    private func formatQwen(turns: [Turn], systemPrompt: String) -> String {
-        return formatChatML(turns: turns, systemPrompt: systemPrompt)
+
+    private func formatQwen(turns: [Turn], systemPrompt: String, architecture: ModelArchitecture = .qwen3) -> String {
+        // For Qwen3, append /no_think to disable chain-of-thought reasoning
+        // This prevents slow <think>...</think> output that users don't want to see
+        let effectiveSystemPrompt: String
+        if architecture == .qwen3 && !systemPrompt.contains("/no_think") {
+            effectiveSystemPrompt = systemPrompt + " /no_think"
+        } else {
+            effectiveSystemPrompt = systemPrompt
+        }
+        return formatChatML(turns: turns, systemPrompt: effectiveSystemPrompt)
     }
     
     // MARK: - DeepSeek Format
@@ -255,11 +266,51 @@ public struct StandardPromptFormatter: PromptFormatting {
     }
     
     // MARK: - OpenChat Format (ChatML-based)
-    
+
     private func formatOpenChat(turns: [Turn], systemPrompt: String) -> String {
         return formatChatML(turns: turns, systemPrompt: systemPrompt)
     }
-    
+
+    // MARK: - StarCoder Format
+
+    private func formatStarCoder(turns: [Turn], systemPrompt: String) -> String {
+        var prompt = "<|system|>\n\(systemPrompt)<|endoftext|>\n"
+
+        for turn in turns {
+            switch turn.role {
+            case .user:
+                prompt += "<|user|>\n\(turn.content)<|endoftext|>\n"
+            case .assistant:
+                prompt += "<|assistant|>\n\(turn.content)<|endoftext|>\n"
+            case .system:
+                break
+            }
+        }
+
+        prompt += "<|assistant|>\n"
+        return prompt
+    }
+
+    // MARK: - Recurrent Models Format (Mamba, RWKV)
+
+    private func formatRecurrent(turns: [Turn], systemPrompt: String) -> String {
+        var prompt = "System: \(systemPrompt)\n\n"
+
+        for turn in turns {
+            switch turn.role {
+            case .user:
+                prompt += "User: \(turn.content)\n\n"
+            case .assistant:
+                prompt += "Assistant: \(turn.content)\n\n"
+            case .system:
+                break
+            }
+        }
+
+        prompt += "Assistant: "
+        return prompt
+    }
+
     // MARK: - ChatML Format (Fallback and base for several models)
     
     private func formatChatML(turns: [Turn], systemPrompt: String) -> String {

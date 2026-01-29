@@ -11,7 +11,8 @@ import SwiftUI
 struct OnDeviceCatalystApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            Qwen3TestView()  // Testing Qwen3-4B model
+            // ContentView()  // Original view
         }
     }
 }

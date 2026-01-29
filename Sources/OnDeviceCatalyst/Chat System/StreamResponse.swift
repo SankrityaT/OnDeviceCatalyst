@@ -32,6 +32,25 @@ public struct StreamChunk: Codable {
         )
         return StreamChunk(content: "", isComplete: true, metadata: chunkMetadata)
     }
+
+    /// Creates a completion chunk with tool calls
+    public static func completionWithToolCalls(
+        reason: CompletionReason,
+        toolCalls: [CatalystToolCall],
+        metadata: ResponseMetadata? = nil
+    ) -> StreamChunk {
+        let chunkMetadata = ChunkMetadata(
+            completionReason: reason,
+            responseMetadata: metadata,
+            toolCalls: toolCalls
+        )
+        return StreamChunk(content: "", isComplete: true, metadata: chunkMetadata)
+    }
+
+    /// Any tool calls in this chunk
+    public var toolCalls: [CatalystToolCall] {
+        return metadata?.toolCalls ?? []
+    }
 }
 
 /// Metadata for individual stream chunks
@@ -40,17 +59,20 @@ public struct ChunkMetadata: Codable {
     public let chunkIndex: Int?
     public let completionReason: CompletionReason?
     public let responseMetadata: ResponseMetadata?
-    
+    public let toolCalls: [CatalystToolCall]?
+
     public init(
         timestamp: Date = Date(),
         chunkIndex: Int? = nil,
         completionReason: CompletionReason? = nil,
-        responseMetadata: ResponseMetadata? = nil
+        responseMetadata: ResponseMetadata? = nil,
+        toolCalls: [CatalystToolCall]? = nil
     ) {
         self.timestamp = timestamp
         self.chunkIndex = chunkIndex
         self.completionReason = completionReason
         self.responseMetadata = responseMetadata
+        self.toolCalls = toolCalls
     }
 }
 
@@ -93,6 +115,17 @@ public struct StreamingResponse {
     public var performanceSummary: String? {
         guard let metadata = metadata else { return nil }
         return metadata.usageSummary
+    }
+
+    /// Parse tool calls from the accumulated content
+    /// Returns the text with tool calls removed, and the parsed tool calls
+    public func parseToolCalls() -> (text: String, toolCalls: [CatalystToolCall]) {
+        return ToolCallParser.parse(from: accumulatedContent)
+    }
+
+    /// All tool calls from completion chunks
+    public var toolCalls: [CatalystToolCall] {
+        return chunks.flatMap { $0.toolCalls }
     }
 }
 

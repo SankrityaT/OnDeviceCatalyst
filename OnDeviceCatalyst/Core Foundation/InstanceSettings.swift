@@ -222,7 +222,7 @@ public struct InstanceSettings: Codable, Hashable {
                 optimized.contextLength = 4096
             }
             
-        case .qwen2, .qwen25:
+        case .qwen2, .qwen25, .qwen3:
             optimized.useFlashAttention = true
             if contextLength < 8192 {
                 optimized.contextLength = 8192

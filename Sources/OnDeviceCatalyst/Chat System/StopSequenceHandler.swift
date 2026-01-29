@@ -30,67 +30,74 @@ public struct StopSequenceHandler {
         switch architecture {
         case .llama2, .codeLlama:
             return ["</s>", "[INST]", "<<SYS>>"]
-            
-        case .llama3, .llama31:
+
+        case .llama3, .llama31, .llama32, .llama33:
             return [
                 "<|eot_id|>",
                 "<|start_header_id|>user<|end_header_id|>",
                 "<|start_header_id|>system<|end_header_id|>",
                 "<|end_of_text|>"
             ]
-            
-        case .mistral, .mistralInstruct:
+
+        case .mistral, .mistralInstruct, .mistralSmall:
             return ["</s>", "[INST]"]
-            
+
         case .mixtral:
             return ["</s>", "[INST]"]
-            
-        case .phi3, .phi35:
+
+        case .phi3, .phi35, .phi4:
             return ["<|end|>", "<|user|>", "<|system|>"]
-            
-        case .gemma, .gemma2:
+
+        case .gemma, .gemma2, .gemma3:
             return [
                 "<end_of_turn>",
                 "<eos>",
                 "<start_of_turn>user",
                 "<start_of_turn>system"
             ]
-            
-        case .qwen2, .qwen25, .codeQwen:
+
+        case .qwen2, .qwen25, .qwen3, .codeQwen, .qwenVL:
             return [
                 "<|im_end|>",
                 "<|im_start|>user",
                 "<|im_start|>system"
             ]
-            
-        case .deepSeek, .deepSeekCoder:
-            return ["User:", "Assistant:"]
-            
+
+        case .deepSeek, .deepSeekCoder, .deepSeekV3:
+            return ["User:", "Assistant:", "<|end▁of▁sentence|>"]
+
+        case .starcoder:
+            return ["<|endoftext|>", "<|user|>", "<|assistant|>"]
+
         case .commandR:
             return [
                 "<|END_OF_TURN_TOKEN|>",
                 "<|USER_TOKEN|>",
                 "<|SYSTEM_TOKEN|>"
             ]
-            
+
         case .yi:
             return [
                 "<|im_end|>",
                 "<|im_start|>user",
                 "<|im_start|>system"
             ]
-            
-        case .openChat:
+
+        case .openChat, .internLM, .olmo:
             return [
                 "<|im_end|>",
                 "<|im_start|>user",
                 "<|im_start|>system"
             ]
-            
-        case .bert:
-            // BERT models don't do text generation, no stop sequences needed
+
+        case .mamba, .rwkv:
+            // Recurrent models use simple formats
+            return ["<|endoftext|>", "\n\nUser:", "\n\nHuman:"]
+
+        case .bert, .nomic:
+            // Embedding models don't do text generation, no stop sequences needed
             return []
-            
+
         case .unknown:
             // Generic ChatML fallback
             return [
@@ -238,24 +245,28 @@ extension ModelArchitecture {
     /// Returns critical stop sequences that should never be removed
     public var criticalStopSequences: [String] {
         switch self {
-        case .llama3, .llama31:
+        case .llama3, .llama31, .llama32, .llama33:
             return ["<|eot_id|>"]
         case .llama2, .codeLlama:
             return ["</s>"]
-        case .mistral, .mistralInstruct, .mixtral:
+        case .mistral, .mistralInstruct, .mixtral, .mistralSmall:
             return ["</s>"]
-        case .phi3, .phi35:
+        case .phi3, .phi35, .phi4:
             return ["<|end|>"]
-        case .gemma, .gemma2:
+        case .gemma, .gemma2, .gemma3:
             return ["<end_of_turn>"]
-        case .qwen2, .qwen25, .codeQwen, .yi, .openChat:
+        case .qwen2, .qwen25, .qwen3, .codeQwen, .qwenVL, .yi, .openChat, .internLM, .olmo:
             return ["<|im_end|>"]
-        case .deepSeek, .deepSeekCoder:
-            return [] // Uses simple format, no critical sequences
+        case .deepSeek, .deepSeekCoder, .deepSeekV3:
+            return ["<|end▁of▁sentence|>"]
+        case .starcoder:
+            return ["<|endoftext|>"]
         case .commandR:
             return ["<|END_OF_TURN_TOKEN|>"]
-        case .bert:
-            return [] // BERT models don't do text generation
+        case .mamba, .rwkv:
+            return ["<|endoftext|>"]
+        case .bert, .nomic:
+            return [] // Embedding models don't do text generation
         case .unknown:
             return ["<|im_end|>"] // ChatML fallback
         }

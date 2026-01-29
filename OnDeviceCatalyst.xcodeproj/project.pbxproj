@@ -6,17 +6,42 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		269929732E61A35A0031DFBD /* llama in Frameworks */ = {isa = PBXBuildFile; productRef = 269929722E61A35A0031DFBD /* llama */; };
-/* End PBXBuildFile section */
+/* Begin PBXCopyFilesBuildPhase section */
+		26565E0C2F2BF52700219FAD /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		269929392E60D2FA0031DFBD /* OnDeviceCatalyst.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OnDeviceCatalyst.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		26565E0D2F2BF52700219FAD /* Exceptions for "OnDeviceCatalyst" folder in "Embed Frameworks" phase from "OnDeviceCatalyst" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				llama.xcframework = (CodeSignOnCopy, RemoveHeadersOnCopy, );
+			};
+			buildPhase = 26565E0C2F2BF52700219FAD /* Embed Frameworks */;
+			membershipExceptions = (
+				llama.xcframework,
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2699293B2E60D2FA0031DFBD /* OnDeviceCatalyst */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				26565E0D2F2BF52700219FAD /* Exceptions for "OnDeviceCatalyst" folder in "Embed Frameworks" phase from "OnDeviceCatalyst" target */,
+			);
 			path = OnDeviceCatalyst;
 			sourceTree = "<group>";
 		};
@@ -27,7 +52,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				269929732E61A35A0031DFBD /* llama in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -60,6 +84,7 @@
 				269929352E60D2FA0031DFBD /* Sources */,
 				269929362E60D2FA0031DFBD /* Frameworks */,
 				269929372E60D2FA0031DFBD /* Resources */,
+				26565E0C2F2BF52700219FAD /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -70,7 +95,6 @@
 			);
 			name = OnDeviceCatalyst;
 			packageProductDependencies = (
-				269929722E61A35A0031DFBD /* llama */,
 			);
 			productName = OnDeviceCatalyst;
 			productReference = 269929392E60D2FA0031DFBD /* OnDeviceCatalyst.app */;
@@ -101,7 +125,6 @@
 			mainGroup = 269929302E60D2FA0031DFBD;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				269929712E61A35A0031DFBD /* XCRemoteSwiftPackageReference "llama" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2699293A2E60D2FA0031DFBD /* Products */;
@@ -360,25 +383,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		269929712E61A35A0031DFBD /* XCRemoteSwiftPackageReference "llama" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ggerganov/llama.cpp";
-			requirement = {
-				kind = revision;
-				revision = 9b75f03cd2ec9cc482084049d87a0f08f9f01517;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		269929722E61A35A0031DFBD /* llama */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 269929712E61A35A0031DFBD /* XCRemoteSwiftPackageReference "llama" */;
-			productName = llama;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 269929312E60D2FA0031DFBD /* Project object */;
 }

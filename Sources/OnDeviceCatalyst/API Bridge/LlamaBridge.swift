@@ -17,6 +17,7 @@ public typealias CContext = OpaquePointer
 public typealias CBatch = llama_batch
 public typealias CToken = llama_token
 public typealias CSampler = UnsafeMutablePointer<llama_sampler>
+public typealias CVocab = OpaquePointer
 
 /// Safe bridge to llama.cpp C API with comprehensive error handling
 public enum LlamaBridge {
@@ -182,18 +183,26 @@ public enum LlamaBridge {
         return llama_n_ctx(context)
     }
 
+    /// Get the vocab pointer from a model (required for llama.cpp b7870+ API)
+    public static func getVocab(_ model: CModel) -> CVocab {
+        return llama_model_get_vocab(model)
+    }
+
     /// Get model vocabulary size
     public static func getVocabularySize(_ model: CModel) -> Int32 {
-        return llama_n_vocab(model)
+        let vocab = getVocab(model)
+        return llama_n_vocab(vocab)
     }
 
     /// Get special tokens
     public static func getBosToken(_ model: CModel) -> CToken {
-        return llama_token_bos(model)
+        let vocab = getVocab(model)
+        return llama_token_bos(vocab)
     }
 
     public static func getEosToken(_ model: CModel) -> CToken {
-        return llama_token_eos(model)
+        let vocab = getVocab(model)
+        return llama_token_eos(vocab)
     }
 
     /// Get model embedding size (hidden dimension)
@@ -203,7 +212,8 @@ public enum LlamaBridge {
 
     /// Check if token indicates end of generation
     public static func isEndOfGeneration(_ model: CModel, token: CToken) -> Bool {
-        return token == llama_token_eos(model) || llama_token_is_eog(model, token)
+        let vocab = getVocab(model)
+        return token == llama_token_eos(vocab) || llama_token_is_eog(vocab, token)
     }
 
     // MARK: - Tokenization
@@ -215,12 +225,13 @@ public enum LlamaBridge {
         addBos: Bool = true,
         parseSpecial: Bool = true
     ) throws -> [CToken] {
+        let vocab = getVocab(model)
         let utf8Count = text.utf8.count
         let maxTokens = utf8Count + (addBos ? 1 : 0) + 1
         var tokens = Array<CToken>(repeating: 0, count: maxTokens)
 
         let tokenCount = llama_tokenize(
-            model,
+            vocab,
             text,
             Int32(utf8Count),
             &tokens,
@@ -241,11 +252,12 @@ public enum LlamaBridge {
 
     /// Convert token back to text
     public static func detokenize(token: CToken, model: CModel) -> String {
+        let vocab = getVocab(model)
         let bufferSize = 128
         var buffer = Array<CChar>(repeating: 0, count: bufferSize)
 
         let charCount = llama_token_to_piece(
-            model,
+            vocab,
             token,
             &buffer,
             Int32(bufferSize),
@@ -598,9 +610,10 @@ public enum LlamaBridge {
         grammarStr: String,
         rootRule: String = "root"
     ) -> CSampler? {
+        let vocab = getVocab(model)
         return grammarStr.withCString { grammarPtr in
             rootRule.withCString { rootPtr in
-                return llama_sampler_init_grammar(model, grammarPtr, rootPtr)
+                return llama_sampler_init_grammar(vocab, grammarPtr, rootPtr)
             }
         }
     }

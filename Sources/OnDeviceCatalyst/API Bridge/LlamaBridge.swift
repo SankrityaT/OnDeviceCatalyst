@@ -413,28 +413,24 @@ public enum LlamaBridge {
     // Note: KV cache direct access functions are not exposed in the XCFramework binary.
     // Context reset is handled through re-initialization when needed.
 
-    /// Clear the entire KV cache by processing an empty batch
-    /// This is a workaround since direct cache functions aren't exposed
+    /// Clear the entire KV cache (memory) for the context
     public static func clearKVCache(_ context: CContext) {
-        // The context will be cleared on next batch with fresh positions
-        // Direct cache functions aren't available in this XCFramework build
-        print("LlamaBridge: KV cache clear requested - handled implicitly on next generation")
+        let mem = llama_get_memory(context)
+        llama_memory_clear(mem, true)
     }
 
-    /// Remove tokens from KV cache in a range
-    /// Note: Direct cache manipulation not available, use context reset instead
+    /// Remove tokens from KV cache in a position range for a sequence
     public static func removeKVCacheTokens(
         context: CContext,
         sequenceId: Int32 = 0,
         startPos: Int32,
         endPos: Int32
     ) {
-        // Direct cache manipulation not available
-        print("LlamaBridge: KV cache token removal requested - not available in this build")
+        let mem = llama_get_memory(context)
+        _ = llama_memory_seq_rm(mem, sequenceId, startPos, endPos)
     }
 
     /// Copy sequence in KV cache
-    /// Note: Direct cache manipulation not available
     public static func copyKVCacheSequence(
         context: CContext,
         sourceSeqId: Int32,
@@ -442,8 +438,8 @@ public enum LlamaBridge {
         startPos: Int32,
         endPos: Int32
     ) {
-        // Direct cache manipulation not available
-        print("LlamaBridge: KV cache sequence copy requested - not available in this build")
+        let mem = llama_get_memory(context)
+        llama_memory_seq_cp(mem, sourceSeqId, destSeqId, startPos, endPos)
     }
 
     /// Get the number of used KV cache cells

@@ -99,6 +99,20 @@ public struct InstanceSettings: Codable, Hashable {
         )
     }
     
+    /// Optimized settings for embedding models (gte-Qwen2, nomic-embed, etc.)
+    public static func embedding() -> InstanceSettings {
+        InstanceSettings(
+            contextLength: 8192,        // Large context for long texts
+            batchSize: 512,             // Efficient batch processing
+            gpuLayers: 99,              // Full GPU acceleration
+            cpuThreads: 8,
+            enableMemoryMapping: true,
+            enableMemoryLocking: false,
+            useFlashAttention: true,
+            seed: 0
+        )
+    }
+    
     /// High-capacity settings for maximum context length
     public static var highCapacity: InstanceSettings {
         #if os(iOS)

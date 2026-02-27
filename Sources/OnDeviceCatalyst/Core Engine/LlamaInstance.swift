@@ -24,10 +24,16 @@ public class LlamaInstance {
     public private(set) var settings: InstanceSettings
     public private(set) var predictionConfig: PredictionConfig
     
-    private var cModel: CModel?
-    private var cContext: CContext?
+    internal var cModel: CModel?
+    internal var cContext: CContext?
     private var cBatch: CBatch?
     private var samplingEngine: SamplingEngine?
+    
+    /// Expose model for internal use (e.g., embedding extraction)
+    internal var model: CModel? { cModel }
+    
+    /// Expose context for internal use (e.g., embedding extraction)
+    internal var context: CContext? { cContext }
     
     private let promptFormatter: StandardPromptFormatter
     private var stopSequenceHandler: StopSequenceHandler

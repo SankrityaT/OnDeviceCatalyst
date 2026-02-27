@@ -554,46 +554,23 @@ extension Catalyst {
         using profile: ModelProfile,
         settings: InstanceSettings = .embedding()
     ) async throws -> [Float] {
-        let instance = try await getOrCreateInstance(for: profile, with: settings)
+        let (instance, loadStream) = await self.instance(for: profile, settings: settings)
         
-        // Tokenize the input text
-        let tokens = instance.tokenize(text: text, addBos: true, addEos: false)
-        
-        guard !tokens.isEmpty else {
-            throw CatalystError.generationFailed("Failed to tokenize text for embedding")
+        // Wait for instance to be ready
+        for await progress in loadStream {
+            if case .ready = progress {
+                break
+            }
+            if case .failed(let error) = progress {
+                throw CatalystError.modelLoadingFailed(details: error)
+            }
         }
         
-        // Create batch for embedding extraction
-        var batch = llama_batch_init(Int32(tokens.count), 0, 1)
-        defer { llama_batch_free(batch) }
-        
-        // Add tokens to batch
-        for (i, token) in tokens.enumerated() {
-            llama_batch_add(&batch, token, Int32(i), [0], i == tokens.count - 1)
-        }
-        
-        // Decode to get embeddings
-        guard llama_decode(instance.context, batch) == 0 else {
-            throw CatalystError.generationFailed("Failed to decode tokens for embedding")
-        }
-        
-        // Extract embedding from last token
-        let embeddingSize = llama_n_embd(instance.model)
-        guard let embeddingPtr = llama_get_embeddings(instance.context) else {
-            throw CatalystError.generationFailed("Failed to extract embeddings from model")
-        }
-        
-        // Convert to Float array
-        var embedding = [Float](repeating: 0, count: Int(embeddingSize))
-        for i in 0..<Int(embeddingSize) {
-            embedding[i] = embeddingPtr[i]
-        }
-        
-        // Normalize the embedding (L2 normalization)
-        let norm = sqrt(embedding.map { $0 * $0 }.reduce(0, +))
-        if norm > 0 {
-            embedding = embedding.map { $0 / norm }
-        }
+        // Extract embedding using LlamaBridge
+        let embedding = try LlamaBridge.extractEmbedding(
+            from: instance,
+            text: text
+        )
         
         return embedding
     }

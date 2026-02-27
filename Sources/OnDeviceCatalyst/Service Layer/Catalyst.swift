@@ -540,6 +540,84 @@ public class Catalyst {
     }
 }
 
+// MARK: - Embedding Extraction
+
+extension Catalyst {
+    /// Extract embeddings from an embedding model (e.g., gte-Qwen2-1.5B, nomic-embed-text-v1.5)
+    /// - Parameters:
+    ///   - text: Text to embed
+    ///   - profile: Model profile for the embedding model
+    ///   - settings: Instance settings (use .embedding() preset)
+    /// - Returns: Normalized embedding vector
+    public func getEmbedding(
+        text: String,
+        using profile: ModelProfile,
+        settings: InstanceSettings = .embedding()
+    ) async throws -> [Float] {
+        let instance = try await getOrCreateInstance(for: profile, with: settings)
+        
+        // Tokenize the input text
+        let tokens = instance.tokenize(text: text, addBos: true, addEos: false)
+        
+        guard !tokens.isEmpty else {
+            throw CatalystError.generationFailed("Failed to tokenize text for embedding")
+        }
+        
+        // Create batch for embedding extraction
+        var batch = llama_batch_init(Int32(tokens.count), 0, 1)
+        defer { llama_batch_free(batch) }
+        
+        // Add tokens to batch
+        for (i, token) in tokens.enumerated() {
+            llama_batch_add(&batch, token, Int32(i), [0], i == tokens.count - 1)
+        }
+        
+        // Decode to get embeddings
+        guard llama_decode(instance.context, batch) == 0 else {
+            throw CatalystError.generationFailed("Failed to decode tokens for embedding")
+        }
+        
+        // Extract embedding from last token
+        let embeddingSize = llama_n_embd(instance.model)
+        guard let embeddingPtr = llama_get_embeddings(instance.context) else {
+            throw CatalystError.generationFailed("Failed to extract embeddings from model")
+        }
+        
+        // Convert to Float array
+        var embedding = [Float](repeating: 0, count: Int(embeddingSize))
+        for i in 0..<Int(embeddingSize) {
+            embedding[i] = embeddingPtr[i]
+        }
+        
+        // Normalize the embedding (L2 normalization)
+        let norm = sqrt(embedding.map { $0 * $0 }.reduce(0, +))
+        if norm > 0 {
+            embedding = embedding.map { $0 / norm }
+        }
+        
+        return embedding
+    }
+    
+    /// Extract embeddings for multiple texts in batch
+    /// - Parameters:
+    ///   - texts: Array of texts to embed
+    ///   - profile: Model profile for the embedding model
+    ///   - settings: Instance settings (use .embedding() preset)
+    /// - Returns: Array of normalized embedding vectors
+    public func getEmbeddingBatch(
+        texts: [String],
+        using profile: ModelProfile,
+        settings: InstanceSettings = .embedding()
+    ) async throws -> [[Float]] {
+        var embeddings: [[Float]] = []
+        for text in texts {
+            let embedding = try await getEmbedding(text: text, using: profile, settings: settings)
+            embeddings.append(embedding)
+        }
+        return embeddings
+    }
+}
+
 // MARK: - Statistics
 
 extension Catalyst {

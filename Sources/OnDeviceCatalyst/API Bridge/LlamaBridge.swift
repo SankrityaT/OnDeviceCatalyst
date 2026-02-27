@@ -623,31 +623,37 @@ public enum LlamaBridge {
     /// - Returns: Normalized embedding vector
     public static func extractEmbedding(from instance: LlamaInstance, text: String) throws -> [Float] {
         guard let model = instance.model, let context = instance.context else {
-            throw CatalystError.modelNotLoaded
+            throw CatalystError.engineNotInitialized
         }
         
-        // Tokenize the input text
-        let tokens = instance.tokenize(text: text, addBos: true, addEos: false)
+        // Tokenize the input text using llama.cpp C API
+        let tokens = try tokenizeText(text, model: model, addBos: true, addEos: false)
         
         guard !tokens.isEmpty else {
-            throw CatalystError.generationFailed(details: "Failed to tokenize text for embedding")
+            throw CatalystError.tokenizationFailed(text: text, reason: "Tokenization produced empty result")
         }
         
         // Create batch for embedding extraction
         var batch = llama_batch_init(Int32(tokens.count), 0, 1)
         defer { llama_batch_free(batch) }
         
-        // Add tokens to batch
+        // Add tokens to batch - set logits=true for last token only
         for (i, token) in tokens.enumerated() {
-            llama_batch_add(&batch, token, Int32(i), [0], i == tokens.count - 1)
+            let isLast = (i == tokens.count - 1)
+            batch.token[i] = token
+            batch.pos[i] = Int32(i)
+            batch.n_seq_id[i] = 1
+            batch.seq_id[i]![0] = 0
+            batch.logits[i] = isLast ? 1 : 0
         }
+        batch.n_tokens = Int32(tokens.count)
         
         // Decode to get embeddings
         guard llama_decode(context, batch) == 0 else {
-            throw CatalystError.generationFailed(details: "Failed to decode tokens for embedding")
+            throw CatalystError.batchProcessingFailed(details: "Failed to decode tokens for embedding")
         }
         
-        // Extract embedding from last token
+        // Extract embedding from the model
         let embeddingSize = llama_n_embd(model)
         guard let embeddingPtr = llama_get_embeddings(context) else {
             throw CatalystError.generationFailed(details: "Failed to extract embeddings from model")
@@ -666,5 +672,28 @@ public enum LlamaBridge {
         }
         
         return embedding
+    }
+    
+    /// Tokenize text using llama.cpp C API
+    private static func tokenizeText(_ text: String, model: CModel, addBos: Bool, addEos: Bool) throws -> [CToken] {
+        let maxTokens = text.utf8.count + (addBos ? 1 : 0) + (addEos ? 1 : 0) + 1
+        var tokens = [CToken](repeating: 0, count: maxTokens)
+        
+        let tokenCount = llama_tokenize(
+            model,
+            text,
+            Int32(text.utf8.count),
+            &tokens,
+            Int32(maxTokens),
+            addBos,
+            false  // special tokens
+        )
+        
+        guard tokenCount >= 0 else {
+            throw CatalystError.tokenizationFailed(text: text, reason: "llama_tokenize returned error code \(tokenCount)")
+        }
+        
+        tokens.removeLast(maxTokens - Int(tokenCount))
+        return tokens
     }
 }

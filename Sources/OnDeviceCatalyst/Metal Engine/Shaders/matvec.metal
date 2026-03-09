@@ -18,36 +18,30 @@ using namespace metal;
 
 // MARK: - Q8_0 Matrix-Vector Multiply
 
-/// Each threadgroup computes one output element.
-/// Threads within the group split the row across themselves.
 kernel void matvec_q8_0(
-    const device uchar* weights     [[buffer(0)]],  // quantized weight matrix
-    const device float* input       [[buffer(1)]],  // input vector [cols]
-    device float*       output      [[buffer(2)]],  // output vector [rows]
+    const device uchar* weights     [[buffer(0)]],
+    const device float* input       [[buffer(1)]],
+    device float*       output      [[buffer(2)]],
     constant MatVecParams& params   [[buffer(3)]],
-    uint row_id  [[threadgroup_position_in_grid]],   // which output row
+    uint row_id  [[threadgroup_position_in_grid]],
     uint tid     [[thread_position_in_threadgroup]],
-    uint tg_size [[threads_per_threadgroup]]
+    uint tg_size [[threads_per_threadgroup]],
+    uint simd_lane [[thread_index_in_simdgroup]]
 ) {
     if (row_id >= params.rows) return;
 
     const uint cols = params.cols;
     const uint blocks_per_row = params.blocks_per_row;
-
-    // Pointer to this row's weight blocks
     const device uchar* row_data = weights + row_id * blocks_per_row * Q8_0_BYTES_PER_BLOCK;
 
     float sum = 0.0f;
 
-    // Each thread processes a stride of blocks
     for (uint block_idx = tid; block_idx < blocks_per_row; block_idx += tg_size) {
         const device uchar* block = row_data + block_idx * Q8_0_BYTES_PER_BLOCK;
         float d = fp16_to_float(((const device ushort*)block)[0]);
         const device int8_t* qs = (const device int8_t*)(block + 2);
-
         uint base_col = block_idx * Q8_0_BLOCK_SIZE;
 
-        // Unrolled dot product within this block
         float block_sum = 0.0f;
         for (int j = 0; j < Q8_0_BLOCK_SIZE && (base_col + j) < cols; j++) {
             block_sum += float(qs[j]) * input[base_col + j];
@@ -55,10 +49,8 @@ kernel void matvec_q8_0(
         sum += d * block_sum;
     }
 
-    // Cross-simdgroup reduction
     sum = simd_sum(sum);
     threadgroup float shared_partial[8];
-    uint simd_lane = simd_lane_id();
     uint simd_group = tid / 32;
     if (simd_lane == 0) shared_partial[simd_group] = sum;
     threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -79,7 +71,8 @@ kernel void matvec_q4_0(
     constant MatVecParams& params   [[buffer(3)]],
     uint row_id  [[threadgroup_position_in_grid]],
     uint tid     [[thread_position_in_threadgroup]],
-    uint tg_size [[threads_per_threadgroup]]
+    uint tg_size [[threads_per_threadgroup]],
+    uint simd_lane [[thread_index_in_simdgroup]]
 ) {
     if (row_id >= params.rows) return;
 
@@ -91,7 +84,6 @@ kernel void matvec_q4_0(
     for (uint block_idx = tid; block_idx < blocks_per_row; block_idx += tg_size) {
         const device uchar* block = row_data + block_idx * Q4_0_BYTES_PER_BLOCK;
         float d = fp16_to_float(((const device ushort*)block)[0]);
-
         uint base_col = block_idx * Q4_0_BLOCK_SIZE;
         float block_sum = 0.0f;
 
@@ -105,10 +97,8 @@ kernel void matvec_q4_0(
         sum += block_sum;
     }
 
-    // Cross-simdgroup reduction
     sum = simd_sum(sum);
     threadgroup float shared_partial[8];
-    uint simd_lane = simd_lane_id();
     uint simd_group = tid / 32;
     if (simd_lane == 0) shared_partial[simd_group] = sum;
     threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -129,7 +119,8 @@ kernel void matvec_q4_k(
     constant MatVecParams& params   [[buffer(3)]],
     uint row_id  [[threadgroup_position_in_grid]],
     uint tid     [[thread_position_in_threadgroup]],
-    uint tg_size [[threads_per_threadgroup]]
+    uint tg_size [[threads_per_threadgroup]],
+    uint simd_lane [[thread_index_in_simdgroup]]
 ) {
     if (row_id >= params.rows) return;
 
@@ -148,10 +139,8 @@ kernel void matvec_q4_k(
         }
     }
 
-    // Cross-simdgroup reduction
     sum = simd_sum(sum);
     threadgroup float shared_partial[8];
-    uint simd_lane = simd_lane_id();
     uint simd_group = tid / 32;
     if (simd_lane == 0) shared_partial[simd_group] = sum;
     threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -172,7 +161,8 @@ kernel void matvec_q6_k(
     constant MatVecParams& params   [[buffer(3)]],
     uint row_id  [[threadgroup_position_in_grid]],
     uint tid     [[thread_position_in_threadgroup]],
-    uint tg_size [[threads_per_threadgroup]]
+    uint tg_size [[threads_per_threadgroup]],
+    uint simd_lane [[thread_index_in_simdgroup]]
 ) {
     if (row_id >= params.rows) return;
 
@@ -191,10 +181,8 @@ kernel void matvec_q6_k(
         }
     }
 
-    // Cross-simdgroup reduction
     sum = simd_sum(sum);
     threadgroup float shared_partial[8];
-    uint simd_lane = simd_lane_id();
     uint simd_group = tid / 32;
     if (simd_lane == 0) shared_partial[simd_group] = sum;
     threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -215,7 +203,8 @@ kernel void matvec_f16(
     constant MatVecParams& params   [[buffer(3)]],
     uint row_id  [[threadgroup_position_in_grid]],
     uint tid     [[thread_position_in_threadgroup]],
-    uint tg_size [[threads_per_threadgroup]]
+    uint tg_size [[threads_per_threadgroup]],
+    uint simd_lane [[thread_index_in_simdgroup]]
 ) {
     if (row_id >= params.rows) return;
 
@@ -227,10 +216,8 @@ kernel void matvec_f16(
         sum += float(row_data[j]) * input[j];
     }
 
-    // Cross-simdgroup reduction
     sum = simd_sum(sum);
     threadgroup float shared_partial[8];
-    uint simd_lane = simd_lane_id();
     uint simd_group = tid / 32;
     if (simd_lane == 0) shared_partial[simd_group] = sum;
     threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -251,7 +238,8 @@ kernel void matvec_f32(
     constant MatVecParams& params   [[buffer(3)]],
     uint row_id  [[threadgroup_position_in_grid]],
     uint tid     [[thread_position_in_threadgroup]],
-    uint tg_size [[threads_per_threadgroup]]
+    uint tg_size [[threads_per_threadgroup]],
+    uint simd_lane [[thread_index_in_simdgroup]]
 ) {
     if (row_id >= params.rows) return;
 
@@ -263,10 +251,8 @@ kernel void matvec_f32(
         sum += row_data[j] * input[j];
     }
 
-    // Cross-simdgroup reduction
     sum = simd_sum(sum);
     threadgroup float shared_partial[8];
-    uint simd_lane = simd_lane_id();
     uint simd_group = tid / 32;
     if (simd_lane == 0) shared_partial[simd_group] = sum;
     threadgroup_barrier(mem_flags::mem_threadgroup);

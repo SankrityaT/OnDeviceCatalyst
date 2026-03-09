@@ -103,7 +103,7 @@ kernel void gqa_attention_decode(
     }
 
     // Step 2: Cross-simdgroup merge via threadgroup memory
-    uint simd_lane = simd_lane_id();
+    uint simd_lane = tid % 32;
     uint simd_group = tid / 32;
     uint n_sg = (tg_size + 31) / 32;
 
@@ -239,7 +239,7 @@ kernel void prefill_attention(
         thread_sum = thread_sum * wa + other_sum * wb;
     }
 
-    uint simd_lane = simd_lane_id();
+    uint simd_lane = tid % 32;
     uint simd_group = tid / 32;
     uint n_sg = (tg_size + 31) / 32;
 

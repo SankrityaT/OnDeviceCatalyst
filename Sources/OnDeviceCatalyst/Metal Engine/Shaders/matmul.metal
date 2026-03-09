@@ -19,13 +19,14 @@ using namespace metal;
 // MARK: - Q8_0 Batched Matmul
 
 kernel void matmul_q8_0(
-    const device uchar* weights     [[buffer(0)]],  // [rows, blocks_per_row * block_bytes]
-    const device float* input       [[buffer(1)]],  // [batch_size, cols]
-    device float*       output      [[buffer(2)]],  // [batch_size, rows]
+    const device uchar* weights     [[buffer(0)]],
+    const device float* input       [[buffer(1)]],
+    device float*       output      [[buffer(2)]],
     constant MatMulParams& params   [[buffer(3)]],
-    uint2 gid    [[threadgroup_position_in_grid]],   // (row_id, batch_idx)
+    uint2 gid    [[threadgroup_position_in_grid]],
     uint  tid    [[thread_position_in_threadgroup]],
-    uint  tg_size [[threads_per_threadgroup]]
+    uint  tg_size [[threads_per_threadgroup]],
+    uint  simd_lane [[thread_index_in_simdgroup]]
 ) {
     uint row_id = gid.x;
     uint batch_idx = gid.y;
@@ -52,7 +53,6 @@ kernel void matmul_q8_0(
 
     sum = simd_sum(sum);
     threadgroup float shared_partial[8];
-    uint simd_lane = simd_lane_id();
     uint simd_group = tid / 32;
     if (simd_lane == 0) shared_partial[simd_group] = sum;
     threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -73,7 +73,8 @@ kernel void matmul_q4_0(
     constant MatMulParams& params   [[buffer(3)]],
     uint2 gid    [[threadgroup_position_in_grid]],
     uint  tid    [[thread_position_in_threadgroup]],
-    uint  tg_size [[threads_per_threadgroup]]
+    uint  tg_size [[threads_per_threadgroup]],
+    uint  simd_lane [[thread_index_in_simdgroup]]
 ) {
     uint row_id = gid.x;
     uint batch_idx = gid.y;
@@ -102,7 +103,6 @@ kernel void matmul_q4_0(
 
     sum = simd_sum(sum);
     threadgroup float shared_partial[8];
-    uint simd_lane = simd_lane_id();
     uint simd_group = tid / 32;
     if (simd_lane == 0) shared_partial[simd_group] = sum;
     threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -123,7 +123,8 @@ kernel void matmul_q4_k(
     constant MatMulParams& params   [[buffer(3)]],
     uint2 gid    [[threadgroup_position_in_grid]],
     uint  tid    [[thread_position_in_threadgroup]],
-    uint  tg_size [[threads_per_threadgroup]]
+    uint  tg_size [[threads_per_threadgroup]],
+    uint  simd_lane [[thread_index_in_simdgroup]]
 ) {
     uint row_id = gid.x;
     uint batch_idx = gid.y;
@@ -146,7 +147,6 @@ kernel void matmul_q4_k(
 
     sum = simd_sum(sum);
     threadgroup float shared_partial[8];
-    uint simd_lane = simd_lane_id();
     uint simd_group = tid / 32;
     if (simd_lane == 0) shared_partial[simd_group] = sum;
     threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -167,7 +167,8 @@ kernel void matmul_q6_k(
     constant MatMulParams& params   [[buffer(3)]],
     uint2 gid    [[threadgroup_position_in_grid]],
     uint  tid    [[thread_position_in_threadgroup]],
-    uint  tg_size [[threads_per_threadgroup]]
+    uint  tg_size [[threads_per_threadgroup]],
+    uint  simd_lane [[thread_index_in_simdgroup]]
 ) {
     uint row_id = gid.x;
     uint batch_idx = gid.y;
@@ -190,7 +191,6 @@ kernel void matmul_q6_k(
 
     sum = simd_sum(sum);
     threadgroup float shared_partial[8];
-    uint simd_lane = simd_lane_id();
     uint simd_group = tid / 32;
     if (simd_lane == 0) shared_partial[simd_group] = sum;
     threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -211,7 +211,8 @@ kernel void matmul_f16(
     constant MatMulParams& params   [[buffer(3)]],
     uint2 gid    [[threadgroup_position_in_grid]],
     uint  tid    [[thread_position_in_threadgroup]],
-    uint  tg_size [[threads_per_threadgroup]]
+    uint  tg_size [[threads_per_threadgroup]],
+    uint  simd_lane [[thread_index_in_simdgroup]]
 ) {
     uint row_id = gid.x;
     uint batch_idx = gid.y;
@@ -228,7 +229,6 @@ kernel void matmul_f16(
 
     sum = simd_sum(sum);
     threadgroup float shared_partial[8];
-    uint simd_lane = simd_lane_id();
     uint simd_group = tid / 32;
     if (simd_lane == 0) shared_partial[simd_group] = sum;
     threadgroup_barrier(mem_flags::mem_threadgroup);
@@ -249,7 +249,8 @@ kernel void matmul_f32(
     constant MatMulParams& params   [[buffer(3)]],
     uint2 gid    [[threadgroup_position_in_grid]],
     uint  tid    [[thread_position_in_threadgroup]],
-    uint  tg_size [[threads_per_threadgroup]]
+    uint  tg_size [[threads_per_threadgroup]],
+    uint  simd_lane [[thread_index_in_simdgroup]]
 ) {
     uint row_id = gid.x;
     uint batch_idx = gid.y;
@@ -266,7 +267,6 @@ kernel void matmul_f32(
 
     sum = simd_sum(sum);
     threadgroup float shared_partial[8];
-    uint simd_lane = simd_lane_id();
     uint simd_group = tid / 32;
     if (simd_lane == 0) shared_partial[simd_group] = sum;
     threadgroup_barrier(mem_flags::mem_threadgroup);

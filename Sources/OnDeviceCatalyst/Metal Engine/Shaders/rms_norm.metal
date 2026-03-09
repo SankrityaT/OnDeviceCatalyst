@@ -34,7 +34,7 @@ kernel void rms_norm(
     // For larger threadgroups, we need threadgroup-level reduction
     // Using threadgroup memory for multi-simdgroup reduction
     threadgroup float shared_sum[32]; // max 32 simdgroups
-    uint simd_lane = simd_lane_id();
+    uint simd_lane = tid % 32;
     uint simd_group = tid / 32;
 
     if (simd_lane == 0) {
@@ -83,7 +83,7 @@ kernel void rms_norm_no_weight(
     sum_sq = simd_sum(sum_sq);
 
     threadgroup float shared_sum[32];
-    uint simd_lane = simd_lane_id();
+    uint simd_lane = tid % 32;
     uint simd_group = tid / 32;
 
     if (simd_lane == 0) {

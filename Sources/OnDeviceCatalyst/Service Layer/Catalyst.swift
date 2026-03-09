@@ -379,7 +379,8 @@ public class Catalyst {
         using profile: ModelProfile,
         mlxModelId: String,
         settings: InstanceSettings = .balanced,
-        predictionConfig: PredictionConfig = .balanced
+        predictionConfig: PredictionConfig = .balanced,
+        tools: [CatalystTool]? = nil
     ) async throws -> AsyncThrowingStream<StreamChunk, Error> {
 
         print("Catalyst.generateWithMLX: Starting with model \(mlxModelId)")
@@ -407,7 +408,8 @@ public class Catalyst {
         return instance.generate(
             conversation: conversation,
             systemPrompt: systemPrompt,
-            overrideConfig: predictionConfig
+            overrideConfig: predictionConfig,
+            tools: tools
         )
     }
 

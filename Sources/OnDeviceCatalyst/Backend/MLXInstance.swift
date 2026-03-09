@@ -113,7 +113,8 @@ public class MLXInstance {
     public func generate(
         conversation: [Turn],
         systemPrompt: String? = nil,
-        overrideConfig: PredictionConfig? = nil
+        overrideConfig: PredictionConfig? = nil,
+        tools: [CatalystTool]? = nil
     ) -> AsyncThrowingStream<StreamChunk, Error> {
 
         AsyncThrowingStream { continuation in
@@ -126,6 +127,7 @@ public class MLXInstance {
                         conversation: conversation,
                         systemPrompt: systemPrompt,
                         config: overrideConfig ?? predictionConfig,
+                        tools: tools,
                         continuation: continuation
                     )
                 } catch {
@@ -139,6 +141,7 @@ public class MLXInstance {
         conversation: [Turn],
         systemPrompt: String?,
         config: PredictionConfig,
+        tools: [CatalystTool]?,
         continuation: AsyncThrowingStream<StreamChunk, Error>.Continuation
     ) async throws {
 
@@ -164,8 +167,39 @@ public class MLXInstance {
             messages.append(["role": turn.role.rawValue, "content": turn.content])
         }
 
+        // Convert CatalystTool → ToolSpec (OpenAI function calling format)
+        let toolSpecs: [MLXLMCommon.ToolSpec]? = tools?.map { tool in
+            var properties: [String: Any] = [:]
+            var required: [String] = []
+            for param in tool.parameters {
+                var prop: [String: Any] = [
+                    "type": param.type,
+                    "description": param.description
+                ]
+                if let enumValues = param.enumValues {
+                    prop["enum"] = enumValues
+                }
+                properties[param.name] = prop
+                if param.required {
+                    required.append(param.name)
+                }
+            }
+            return [
+                "type": "function",
+                "function": [
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": [
+                        "type": "object",
+                        "properties": properties,
+                        "required": required
+                    ] as [String: Any]
+                ] as [String: Any]
+            ] as [String: any Sendable]
+        }
+
         // Prepare input using chat template
-        let userInput = UserInput(messages: messages)
+        let userInput = UserInput(messages: messages, tools: toolSpecs)
         let lmInput = try await container.prepare(input: userInput)
 
         // Map PredictionConfig → GenerateParameters
@@ -208,9 +242,18 @@ public class MLXInstance {
                 )
                 continuation.yield(.completion(reason: .natural, metadata: metadata))
 
-            case .toolCall:
-                // Tool calls from MLX are handled at a higher level
-                break
+            case .toolCall(let call):
+                let args = call.function.arguments.mapValues { jsonValue in
+                    AnyCodable(Self.jsonValueToAny(jsonValue))
+                }
+                let catalystCall = CatalystToolCall(
+                    name: call.function.name,
+                    arguments: args
+                )
+                continuation.yield(.completionWithToolCalls(
+                    reason: .natural,
+                    toolCalls: [catalystCall]
+                ))
             }
         }
 
@@ -246,6 +289,18 @@ public class MLXInstance {
     }
 
     // MARK: - Helpers
+
+    private static func jsonValueToAny(_ value: JSONValue) -> Any {
+        switch value {
+        case .null: return NSNull()
+        case .bool(let b): return b
+        case .int(let i): return i
+        case .double(let d): return d
+        case .string(let s): return s
+        case .array(let arr): return arr.map { jsonValueToAny($0) }
+        case .object(let obj): return obj.mapValues { jsonValueToAny($0) }
+        }
+    }
 
     private func publishProgress(_ progress: LoadProgress) {
         loadingContinuation?.yield(progress)

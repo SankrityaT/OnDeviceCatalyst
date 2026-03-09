@@ -96,6 +96,9 @@ public class LlamaInstance {
             case .metal:
                 publishProgress(.loading("Initializing Metal inference engine"))
                 newBackend = MetalBackend()
+            case .mlx:
+                publishProgress(.failed("MLX backend should use MLXInstance, not LlamaInstance"))
+                return
             }
 
             publishProgress(.loading("Loading model from \(profile.filePath)"))

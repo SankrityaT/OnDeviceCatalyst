@@ -24,12 +24,14 @@ kernel void matmul_q8_0(
     device float*       output      [[buffer(2)]],
     constant MatMulParams& params   [[buffer(3)]],
     uint2 gid    [[threadgroup_position_in_grid]],
-    uint  tid    [[thread_position_in_threadgroup]],
-    uint  tg_size [[threads_per_threadgroup]],
-    uint  simd_lane [[thread_index_in_simdgroup]]
+    uint2 tid2   [[thread_position_in_threadgroup]],
+    uint2 tg2    [[threads_per_threadgroup]]
 ) {
     uint row_id = gid.x;
     uint batch_idx = gid.y;
+    uint tid = tid2.x;
+    uint tg_size = tg2.x;
+    uint simd_lane = tid % 32;
     if (row_id >= params.rows || batch_idx >= params.batch_size) return;
 
     const uint cols = params.cols;
@@ -72,12 +74,14 @@ kernel void matmul_q4_0(
     device float*       output      [[buffer(2)]],
     constant MatMulParams& params   [[buffer(3)]],
     uint2 gid    [[threadgroup_position_in_grid]],
-    uint  tid    [[thread_position_in_threadgroup]],
-    uint  tg_size [[threads_per_threadgroup]],
-    uint  simd_lane [[thread_index_in_simdgroup]]
+    uint2 tid2   [[thread_position_in_threadgroup]],
+    uint2 tg2    [[threads_per_threadgroup]]
 ) {
     uint row_id = gid.x;
     uint batch_idx = gid.y;
+    uint tid = tid2.x;
+    uint tg_size = tg2.x;
+    uint simd_lane = tid % 32;
     if (row_id >= params.rows || batch_idx >= params.batch_size) return;
 
     const uint blocks_per_row = params.blocks_per_row;
@@ -122,12 +126,14 @@ kernel void matmul_q4_k(
     device float*       output      [[buffer(2)]],
     constant MatMulParams& params   [[buffer(3)]],
     uint2 gid    [[threadgroup_position_in_grid]],
-    uint  tid    [[thread_position_in_threadgroup]],
-    uint  tg_size [[threads_per_threadgroup]],
-    uint  simd_lane [[thread_index_in_simdgroup]]
+    uint2 tid2   [[thread_position_in_threadgroup]],
+    uint2 tg2    [[threads_per_threadgroup]]
 ) {
     uint row_id = gid.x;
     uint batch_idx = gid.y;
+    uint tid = tid2.x;
+    uint tg_size = tg2.x;
+    uint simd_lane = tid % 32;
     if (row_id >= params.rows || batch_idx >= params.batch_size) return;
 
     const uint blocks_per_row = params.blocks_per_row;
@@ -166,12 +172,14 @@ kernel void matmul_q6_k(
     device float*       output      [[buffer(2)]],
     constant MatMulParams& params   [[buffer(3)]],
     uint2 gid    [[threadgroup_position_in_grid]],
-    uint  tid    [[thread_position_in_threadgroup]],
-    uint  tg_size [[threads_per_threadgroup]],
-    uint  simd_lane [[thread_index_in_simdgroup]]
+    uint2 tid2   [[thread_position_in_threadgroup]],
+    uint2 tg2    [[threads_per_threadgroup]]
 ) {
     uint row_id = gid.x;
     uint batch_idx = gid.y;
+    uint tid = tid2.x;
+    uint tg_size = tg2.x;
+    uint simd_lane = tid % 32;
     if (row_id >= params.rows || batch_idx >= params.batch_size) return;
 
     const uint blocks_per_row = params.blocks_per_row;
@@ -210,12 +218,14 @@ kernel void matmul_f16(
     device float*       output      [[buffer(2)]],
     constant MatMulParams& params   [[buffer(3)]],
     uint2 gid    [[threadgroup_position_in_grid]],
-    uint  tid    [[thread_position_in_threadgroup]],
-    uint  tg_size [[threads_per_threadgroup]],
-    uint  simd_lane [[thread_index_in_simdgroup]]
+    uint2 tid2   [[thread_position_in_threadgroup]],
+    uint2 tg2    [[threads_per_threadgroup]]
 ) {
     uint row_id = gid.x;
     uint batch_idx = gid.y;
+    uint tid = tid2.x;
+    uint tg_size = tg2.x;
+    uint simd_lane = tid % 32;
     if (row_id >= params.rows || batch_idx >= params.batch_size) return;
 
     const uint cols = params.cols;
@@ -248,12 +258,14 @@ kernel void matmul_f32(
     device float*       output      [[buffer(2)]],
     constant MatMulParams& params   [[buffer(3)]],
     uint2 gid    [[threadgroup_position_in_grid]],
-    uint  tid    [[thread_position_in_threadgroup]],
-    uint  tg_size [[threads_per_threadgroup]],
-    uint  simd_lane [[thread_index_in_simdgroup]]
+    uint2 tid2   [[thread_position_in_threadgroup]],
+    uint2 tg2    [[threads_per_threadgroup]]
 ) {
     uint row_id = gid.x;
     uint batch_idx = gid.y;
+    uint tid = tid2.x;
+    uint tg_size = tg2.x;
+    uint simd_lane = tid % 32;
     if (row_id >= params.rows || batch_idx >= params.batch_size) return;
 
     const uint cols = params.cols;

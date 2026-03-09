@@ -171,12 +171,14 @@ kernel void prefill_attention(
     constant AttentionParams& params [[buffer(4)]],
     constant uint&      start_pos   [[buffer(5)]],  // start position in KV cache
     constant uint&      batch_size  [[buffer(6)]],
-    uint2 gid    [[threadgroup_position_in_grid]],   // (head_id, batch_idx)
-    uint  tid    [[thread_position_in_threadgroup]],
-    uint  tg_size [[threads_per_threadgroup]]
+    uint2 gid    [[threadgroup_position_in_grid]],
+    uint2 tid2   [[thread_position_in_threadgroup]],
+    uint2 tg2    [[threads_per_threadgroup]]
 ) {
     uint head_id = gid.x;
     uint batch_idx = gid.y;
+    uint tid = tid2.x;
+    uint tg_size = tg2.x;
 
     if (head_id >= params.num_heads || batch_idx >= batch_size) return;
 

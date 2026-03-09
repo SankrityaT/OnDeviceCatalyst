@@ -566,12 +566,8 @@ extension Catalyst {
             }
         }
         
-        // Extract embedding using LlamaBridge
-        let embedding = try LlamaBridge.extractEmbedding(
-            from: instance,
-            text: text
-        )
-        
+        // Extract embedding using the instance's backend
+        let embedding = try instance.embed(text: text)
         return embedding
     }
     

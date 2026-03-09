@@ -7,26 +7,21 @@
 
 
 import Foundation
-import llama
 
 /// Advanced sampling engine implementing various token selection strategies
 public class SamplingEngine {
-    private let model: CModel
-    private let context: CContext
     private let vocabularySize: Int32
-    
-    public init(model: CModel, context: CContext) {
-        self.model = model
-        self.context = context
-        self.vocabularySize = LlamaBridge.getVocabularySize(model)
+
+    public init(vocabularySize: Int32) {
+        self.vocabularySize = vocabularySize
     }
     
     /// Main sampling method that applies all configured sampling techniques
     public func sampleToken(
         logits: UnsafeMutablePointer<Float>,
         config: PredictionConfig,
-        recentTokens: [CToken] = []
-    ) throws -> CToken {
+        recentTokens: [Int32] = []
+    ) throws -> Int32 {
         
         // Validate inputs
         try validateSamplingInputs(config: config, logits: logits)
@@ -94,14 +89,14 @@ public class SamplingEngine {
     // MARK: - Core Sampling Methods
     
     /// Greedy sampling - always pick highest probability token
-    private func sampleGreedy(logits: UnsafeMutablePointer<Float>) -> CToken {
+    private func sampleGreedy(logits: UnsafeMutablePointer<Float>) -> Int32 {
         var maxLogit: Float = -Float.infinity
-        var bestToken: CToken = 0
+        var bestToken: Int32 = 0
         
         for i in 0..<Int(vocabularySize) {
             if logits[i] > maxLogit {
                 maxLogit = logits[i]
-                bestToken = CToken(i)
+                bestToken = Int32(i)
             }
         }
         
@@ -224,14 +219,14 @@ public class SamplingEngine {
     /// Apply repetition penalties to recent tokens
     private func applyRepetitionPenalties(
         logits: inout [Float],
-        recentTokens: [CToken],
+        recentTokens: [Int32],
         config: PredictionConfig
     ) {
         let penaltyRange = min(Int(config.repetitionPenaltyRange), recentTokens.count)
         let tokensToConsider = Array(recentTokens.suffix(penaltyRange))
         
         // Frequency counting for penalties
-        var tokenCounts: [CToken: Int] = [:]
+        var tokenCounts: [Int32: Int] = [:]
         for token in tokensToConsider {
             tokenCounts[token, default: 0] += 1
         }
@@ -267,7 +262,7 @@ public class SamplingEngine {
     private var mirostatTau: Float = 5.0
     
     /// Mirostat sampling for dynamic vocabulary control
-    private func sampleMirostat(logits: [Float], config: PredictionConfig) throws -> CToken {
+    private func sampleMirostat(logits: [Float], config: PredictionConfig) throws -> Int32 {
         // This is a simplified Mirostat implementation
         // Full Mirostat requires maintaining state across calls
         
@@ -297,12 +292,12 @@ public class SamplingEngine {
     /// Create candidate structure from probabilities
     private func createCandidates(from probabilities: [Float]) -> [TokenCandidate] {
         return probabilities.enumerated().map { index, probability in
-            TokenCandidate(token: CToken(index), probability: probability)
+            TokenCandidate(token: Int32(index), probability: probability)
         }
     }
     
     /// Sample from candidates using weighted random selection
-    private func sampleFromCandidates(_ candidates: [TokenCandidate]) -> CToken {
+    private func sampleFromCandidates(_ candidates: [TokenCandidate]) -> Int32 {
         guard !candidates.isEmpty else { return 0 }
         
         // Renormalize probabilities
@@ -347,7 +342,7 @@ public class SamplingEngine {
 
 /// Represents a token candidate with its probability
 private struct TokenCandidate {
-    let token: CToken
+    let token: Int32
     let probability: Float
 }
 
@@ -361,7 +356,7 @@ extension SamplingEngine {
         temperature: Float = 0.7,
         topP: Float = 0.9,
         topK: Int32 = 40
-    ) throws -> CToken {
+    ) throws -> Int32 {
         let config = PredictionConfig(
             temperature: temperature,
             topK: topK,

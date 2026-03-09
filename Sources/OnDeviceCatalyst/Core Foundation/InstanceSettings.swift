@@ -25,6 +25,9 @@ public struct InstanceSettings: Codable, Hashable {
     // MARK: - Advanced Features
     public var useFlashAttention: Bool
     public var seed: UInt32
+
+    // MARK: - Backend Selection
+    public var backendType: BackendType
     
     /// Initialize with default values optimized for the current device
     public init(
@@ -35,7 +38,8 @@ public struct InstanceSettings: Codable, Hashable {
         enableMemoryMapping: Bool = true,
         enableMemoryLocking: Bool = false,
         useFlashAttention: Bool = false,
-        seed: UInt32 = 0
+        seed: UInt32 = 0,
+        backendType: BackendType = .llamaCpp
     ) {
         self.contextLength = contextLength
         self.batchSize = batchSize
@@ -45,6 +49,7 @@ public struct InstanceSettings: Codable, Hashable {
         self.enableMemoryLocking = enableMemoryLocking
         self.useFlashAttention = useFlashAttention
         self.seed = seed == 0 ? UInt32.random(in: 1...UInt32.max) : seed
+        self.backendType = backendType
     }
     
     // MARK: - Preset Configurations

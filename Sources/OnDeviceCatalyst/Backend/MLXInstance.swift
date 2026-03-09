@@ -168,7 +168,7 @@ public class MLXInstance {
         }
 
         // Convert CatalystTool → ToolSpec (OpenAI function calling format)
-        let toolSpecs: [MLXLMCommon.ToolSpec]? = tools?.map { tool in
+        let toolSpecs: [[String: any Sendable]]? = tools?.map { tool in
             var properties: [String: Any] = [:]
             var required: [String] = []
             for param in tool.parameters {

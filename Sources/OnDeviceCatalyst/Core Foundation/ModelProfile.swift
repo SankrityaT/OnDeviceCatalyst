@@ -51,6 +51,22 @@ public struct ModelProfile: Hashable, Codable, Identifiable {
         try self.validateModel()
     }
     
+    /// Create a lightweight profile for MLX models that are downloaded/managed
+    /// by the MLX framework (not local GGUF files). Skips file validation.
+    public init(
+        mlxModelId: String,
+        name: String,
+        architecture: ModelArchitecture = .qwen35
+    ) {
+        self.filePath = mlxModelId  // Store HF model ID as path for identification
+        self.architecture = architecture
+        self.name = name
+        self.id = "mlx-\(mlxModelId)"
+        self.checksum = nil
+        self.createdAt = Date()
+        self.fileSize = nil
+    }
+
     /// Create a profile with explicit architecture (for fallback scenarios)
     public static func withFallback(
         filePath: String,

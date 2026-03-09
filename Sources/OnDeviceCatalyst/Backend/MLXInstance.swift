@@ -81,11 +81,12 @@ public class MLXInstance {
 
             publishProgress(.loading("Downloading / loading MLX model weights"))
 
-            // Set GPU cache limit based on device
+            // Aggressively limit GPU memory on iOS to avoid OOM kills
             #if os(iOS)
-            MLX.GPU.set(cacheLimit: 512 * 1024 * 1024) // 512 MB on iOS
+            MLX.GPU.set(cacheLimit: 256 * 1024 * 1024)  // 256 MB cache
+            MLX.GPU.set(memoryLimit: 3 * 1024 * 1024 * 1024, relaxed: true) // 3 GB soft limit
             #else
-            MLX.GPU.set(cacheLimit: 1024 * 1024 * 1024) // 1 GB on macOS
+            MLX.GPU.set(cacheLimit: 1024 * 1024 * 1024)
             #endif
 
             let loadedContainer = try await LLMModelFactory.shared.loadContainer(

@@ -117,6 +117,9 @@ public class MLXInstance {
     ) -> AsyncThrowingStream<StreamChunk, Error> {
 
         AsyncThrowingStream { continuation in
+            continuation.onTermination = { [weak self] _ in
+                self?.isGenerating = false
+            }
             Task {
                 do {
                     try await performGeneration(

@@ -55,7 +55,7 @@ public struct StandardPromptFormatter: PromptFormatting {
         case .gemma, .gemma2, .gemma3:
             return formatGemma(turns: turns, systemPrompt: effectiveSystemPrompt)
 
-        case .qwen2, .qwen25, .qwen3, .codeQwen, .qwenVL:
+        case .qwen2, .qwen25, .qwen3, .qwen35, .codeQwen, .qwenVL:
             return formatQwen(turns: turns, systemPrompt: effectiveSystemPrompt, architecture: architecture)
 
         case .deepSeek, .deepSeekCoder, .deepSeekV3:

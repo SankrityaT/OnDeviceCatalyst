@@ -56,7 +56,7 @@ public struct StopSequenceHandler {
                 "<start_of_turn>system"
             ]
 
-        case .qwen2, .qwen25, .qwen3, .codeQwen, .qwenVL:
+        case .qwen2, .qwen25, .qwen3, .qwen35, .codeQwen, .qwenVL:
             return [
                 "<|im_end|>",
                 "<|im_start|>user",

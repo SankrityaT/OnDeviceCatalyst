@@ -10,7 +10,7 @@ import PackageDescription
 // Checksum for the xcframework zip
 // Compute with: swift package compute-checksum llama.xcframework.zip
 // UPDATE THIS after uploading to GitHub releases!
-let xcframeworkChecksum = "8a3bb0e2d153ad68438704636b94ffe613fc8e953beb7aefa23a9ad5b8768071"
+let xcframeworkChecksum = "9337f340bebe4158aa3d8e3eb71ccf3335ee16c3f84cb024deea513a9646c75a"
 
 // ============================================================================
 
@@ -32,7 +32,7 @@ let package = Package(
         // Qwen3, Gemma3, Llama 3.2/3.3, Phi-4, DeepSeek V3, and more
         .binaryTarget(
             name: "llama",
-            url: "https://github.com/SankrityaT/OnDeviceCatalyst/releases/download/v1.0.0/llama.xcframework.zip",
+            url: "https://github.com/SankrityaT/OnDeviceCatalyst/releases/download/v2.0.0/llama.xcframework.zip",
             checksum: xcframeworkChecksum
         ),
         .target(

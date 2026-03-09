@@ -145,9 +145,19 @@ kernel void matmul_q4_k(
         const device uchar* superblock = row_data + block_idx * Q4_K_BYTES_PER_BLOCK;
         uint base_col = block_idx * Q4_K_BLOCK_SIZE;
 
-        for (int j = 0; j < Q4_K_BLOCK_SIZE && (base_col + j) < params.cols; j++) {
-            float w = dequant_q4_k(superblock, j);
-            sum += w * x[base_col + j];
+        for (int sb = 0; sb < 8; sb++) {
+            uint sb_base = base_col + sb * 32;
+            if (sb_base >= params.cols) break;
+
+            float w_buf[32];
+            dequant_q4_k_block(superblock, sb, w_buf);
+
+            uint count = min(32u, params.cols - sb_base);
+            float sb_sum = 0.0f;
+            for (uint k = 0; k < count; k++) {
+                sb_sum += w_buf[k] * x[sb_base + k];
+            }
+            sum += sb_sum;
         }
     }
 
@@ -191,9 +201,19 @@ kernel void matmul_q6_k(
         const device uchar* superblock = row_data + block_idx * Q6_K_BYTES_PER_BLOCK;
         uint base_col = block_idx * Q6_K_BLOCK_SIZE;
 
-        for (int j = 0; j < Q6_K_BLOCK_SIZE && (base_col + j) < params.cols; j++) {
-            float w = dequant_q6_k(superblock, j);
-            sum += w * x[base_col + j];
+        for (int sb = 0; sb < 16; sb++) {
+            uint sb_base = base_col + sb * 16;
+            if (sb_base >= params.cols) break;
+
+            float w_buf[16];
+            dequant_q6_k_block(superblock, sb, w_buf);
+
+            uint count = min(16u, params.cols - sb_base);
+            float sb_sum = 0.0f;
+            for (uint k = 0; k < count; k++) {
+                sb_sum += w_buf[k] * x[sb_base + k];
+            }
+            sum += sb_sum;
         }
     }
 

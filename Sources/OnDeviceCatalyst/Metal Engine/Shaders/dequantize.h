@@ -118,6 +118,67 @@ inline float dequant_q6_k(const device uchar* superblock, int idx) {
     return d * sc * (float(q) - 32.0f);
 }
 
+// MARK: - Q4_K vectorized sub-block dequantization
+// Processes a full 32-element sub-block at once, hoisting scale/min reads outside.
+// Output written to a float array; caller accumulates the dot product.
+
+inline void dequant_q4_k_block(const device uchar* superblock, int sub_block,
+                                thread float* out) {
+    float d    = fp16_to_float(((const device ushort*)superblock)[0]);
+    float dmin = fp16_to_float(((const device ushort*)superblock)[1]);
+
+    const device uchar* scales_data = superblock + 4;
+    const device uchar* quants = superblock + 16;
+
+    float sc, m;
+    if (sub_block < 4) {
+        sc = float(scales_data[sub_block] & 0x3F);
+        m  = float(scales_data[sub_block + 4] & 0x3F);
+    } else {
+        sc = float((scales_data[sub_block + 4] & 0x0F) | ((scales_data[sub_block - 4] >> 6) << 4));
+        m  = float((scales_data[sub_block + 4] >> 4)   | ((scales_data[sub_block]     >> 6) << 4));
+    }
+
+    float d_sc  = d * sc;
+    float dm_m  = dmin * m;
+
+    const device uchar* q = quants + sub_block * 16;
+
+    for (int i = 0; i < 16; i++) {
+        uchar byte_val = q[i];
+        out[i * 2]     = d_sc * float(byte_val & 0x0F) - dm_m;
+        out[i * 2 + 1] = d_sc * float(byte_val >> 4)   - dm_m;
+    }
+}
+
+// MARK: - Q6_K vectorized sub-block dequantization
+// Processes a 16-element sub-block, hoisting scale and d reads outside.
+
+inline void dequant_q6_k_block(const device uchar* superblock, int sub_block,
+                                thread float* out) {
+    const device uchar* ql = superblock;
+    const device uchar* qh = superblock + 128;
+    const device int8_t* scales = (const device int8_t*)(superblock + 192);
+    float d = fp16_to_float(((const device ushort*)(superblock + 208))[0]);
+
+    float sc = d * float(scales[sub_block]);
+
+    for (int sub_idx = 0; sub_idx < 16; sub_idx++) {
+        int ql_idx = (sub_block / 2) * 32 + (sub_block & 1) * 16 + sub_idx;
+        uchar ql_byte = ql[ql_idx / 2];
+        int q_lo = (ql_idx & 1) ? (ql_byte >> 4) : (ql_byte & 0x0F);
+
+        int qh_idx = (sub_block / 4) * 32 + (sub_block & 1) * 16 + sub_idx;
+        uchar qh_byte = qh[qh_idx / 2];
+        int qh_val = (qh_idx & 1) ? (qh_byte >> 4) : (qh_byte & 0x0F);
+        int shift = ((sub_block / 2) & 1) * 2;
+        int q_hi = (qh_val >> shift) & 0x03;
+
+        int q = q_lo | (q_hi << 4);
+        out[sub_idx] = sc * (float(q) - 32.0f);
+    }
+}
+
 // MARK: - F16 dequantization (trivial)
 
 inline float dequant_f16(const device uchar* data, int idx) {

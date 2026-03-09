@@ -37,6 +37,7 @@ public enum ModelArchitecture: String, CaseIterable, Codable, Hashable {
     case qwen2 = "qwen2"
     case qwen25 = "qwen2.5"
     case qwen3 = "qwen3"             // NEW: Qwen 3
+    case qwen35 = "qwen35"           // NEW: Qwen 3.5 (hybrid Mamba+Attention)
     case codeQwen = "code_qwen"
     case qwenVL = "qwen_vl"          // NEW: Qwen Vision-Language
 
@@ -84,7 +85,9 @@ public enum ModelArchitecture: String, CaseIterable, Codable, Hashable {
         }
 
         // Qwen variants (most specific first)
-        if filename.contains("qwen3") || filename.contains("qwen-3") {
+        if filename.contains("qwen3.5") || filename.contains("qwen-3.5") || filename.contains("qwen35") {
+            return .qwen35
+        } else if filename.contains("qwen3") || filename.contains("qwen-3") {
             return .qwen3
         } else if filename.contains("qwen2.5") || filename.contains("qwen-2.5") {
             return .qwen25
@@ -194,6 +197,8 @@ public enum ModelArchitecture: String, CaseIterable, Codable, Hashable {
             return .llama3  // 3.2 falls back to 3.0
         case .llama31:
             return .llama3  // 3.1 falls back to 3.0 template
+        case .qwen35:
+            return .qwen3   // Qwen 3.5 falls back to Qwen 3
         case .qwen3:
             return .qwen25  // Qwen 3 falls back to 2.5
         case .qwen25:
@@ -234,7 +239,7 @@ public enum ModelArchitecture: String, CaseIterable, Codable, Hashable {
         switch self {
         case .llama3, .llama31, .llama32, .llama33:
             return true
-        case .qwen2, .qwen25, .qwen3, .codeQwen, .qwenVL:
+        case .qwen2, .qwen25, .qwen3, .qwen35, .codeQwen, .qwenVL:
             return true
         case .phi4:
             return true
@@ -278,6 +283,8 @@ public enum ModelArchitecture: String, CaseIterable, Codable, Hashable {
             return 131072  // 128K context
         case .qwen2, .qwen25, .qwen3, .codeQwen:
             return 32768   // 32K context (Qwen 2.5 supports up to 128K)
+        case .qwen35:
+            return 262144  // 262K context (Qwen 3.5 native)
         case .qwenVL:
             return 8192    // Vision models typically use less context
         case .mixtral, .mistralSmall:

@@ -350,7 +350,7 @@ public class Catalyst {
 
         // Format tools into the system prompt based on architecture
         let toolPrompt: String
-        if profile.architecture == .qwen3 {
+        if profile.architecture == .qwen3 || profile.architecture == .qwen35 {
             toolPrompt = ToolPromptFormatter.formatForQwen3(tools)
         } else {
             toolPrompt = ToolPromptFormatter.formatAsText(tools)

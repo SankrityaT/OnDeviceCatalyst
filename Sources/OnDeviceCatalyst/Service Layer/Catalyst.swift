@@ -52,6 +52,7 @@ public class Catalyst {
     public static let shared = Catalyst()
     
     private var activeInstances: [String: LlamaInstance] = [:]
+    private var activeMLXInstances: [String: MLXInstance] = [:]
     private var instanceRefCounts: [String: Int] = [:]
     private let modelCache = ModelCache.shared
     private let queue = DispatchQueue(label: "com.catalyst.service", attributes: .concurrent)
@@ -335,6 +336,93 @@ public class Catalyst {
         conversation.addTurn(assistantTurn)
     }
 
+    // MARK: - MLX Generation
+
+    /// Get or create an MLX model instance
+    public func mlxInstance(
+        for profile: ModelProfile,
+        settings: InstanceSettings = .balanced,
+        predictionConfig: PredictionConfig = .balanced,
+        mlxModelId: String
+    ) async -> (instance: MLXInstance, loadStream: AsyncStream<LoadProgress>) {
+
+        let instanceId = "mlx-\(profile.id)"
+
+        // Check existing MLX instances
+        if let existing = queue.sync(execute: { activeMLXInstances[instanceId] }), existing.isReady {
+            let stream = AsyncStream<LoadProgress> { continuation in
+                continuation.yield(.ready("Retrieved from active MLX instances"))
+                continuation.finish()
+            }
+            return (existing, stream)
+        }
+
+        let newInstance = MLXInstance(
+            profile: profile,
+            settings: settings,
+            predictionConfig: predictionConfig,
+            mlxModelId: mlxModelId
+        )
+
+        let loadStream = newInstance.initialize()
+        queue.sync(flags: .barrier) {
+            activeMLXInstances[instanceId] = newInstance
+        }
+
+        return (newInstance, loadStream)
+    }
+
+    /// Generate response using MLX backend
+    public func generateWithMLX(
+        conversation: [Turn],
+        systemPrompt: String,
+        using profile: ModelProfile,
+        mlxModelId: String,
+        settings: InstanceSettings = .balanced,
+        predictionConfig: PredictionConfig = .balanced
+    ) async throws -> AsyncThrowingStream<StreamChunk, Error> {
+
+        print("Catalyst.generateWithMLX: Starting with model \(mlxModelId)")
+
+        let (instance, loadStream) = await mlxInstance(
+            for: profile,
+            settings: settings,
+            predictionConfig: predictionConfig,
+            mlxModelId: mlxModelId
+        )
+
+        // Wait for model to be ready
+        if !instance.isReady {
+            for await progress in loadStream {
+                print("Catalyst MLX: \(progress.message)")
+                if progress.isComplete {
+                    if case .failed(let message) = progress {
+                        throw CatalystError.modelLoadingFailed(details: message)
+                    }
+                    break
+                }
+            }
+        }
+
+        return instance.generate(
+            conversation: conversation,
+            systemPrompt: systemPrompt,
+            overrideConfig: predictionConfig
+        )
+    }
+
+    /// Release an MLX instance
+    public func releaseMLXInstance(for profileId: String) async {
+        let instanceId = "mlx-\(profileId)"
+        if let instance = queue.sync(execute: { activeMLXInstances[instanceId] }) {
+            await instance.shutdown()
+            queue.sync(flags: .barrier) {
+                activeMLXInstances.removeValue(forKey: instanceId)
+            }
+            print("Catalyst: Released MLX instance for \(profileId)")
+        }
+    }
+
     // MARK: - Tool Calling Support
 
     /// Generate response with tool calling support
@@ -434,16 +522,21 @@ public class Catalyst {
     /// Shutdown all active instances
     public func shutdownAll() async {
         let instancesToShutdown = queue.sync { Array(activeInstances.values) }
-        
+        let mlxInstancesToShutdown = queue.sync { Array(activeMLXInstances.values) }
+
         for instance in instancesToShutdown {
             await instance.shutdown()
         }
-        
+        for instance in mlxInstancesToShutdown {
+            await instance.shutdown()
+        }
+
         queue.sync(flags: .barrier) {
             activeInstances.removeAll()
+            activeMLXInstances.removeAll()
             instanceRefCounts.removeAll()
         }
-        
+
         modelCache.clearAll()
         print("Catalyst: All instances shut down")
     }

@@ -12,6 +12,7 @@ import Foundation
 public enum BackendType: String, Codable, Hashable {
     case llamaCpp
     case metal
+    case mlx
 }
 
 /// Core abstraction for inference backends.

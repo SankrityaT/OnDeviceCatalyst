@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 5.12
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -17,8 +17,8 @@ let xcframeworkChecksum = "9337f340bebe4158aa3d8e3eb71ccf3335ee16c3f84cb024deea5
 let package = Package(
     name: "OnDeviceCatalyst",
     platforms: [
-        .iOS(.v16),
-        .macOS(.v13)
+        .iOS(.v17),
+        .macOS(.v14)
     ],
     products: [
         .library(
@@ -26,7 +26,9 @@ let package = Package(
             targets: ["OnDeviceCatalyst"]
         ),
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/ml-explore/mlx-swift-lm/", branch: "main"),
+    ],
     targets: [
         // llama.cpp XCFramework with full model support:
         // Qwen3, Gemma3, Llama 3.2/3.3, Phi-4, DeepSeek V3, and more
@@ -37,7 +39,11 @@ let package = Package(
         ),
         .target(
             name: "OnDeviceCatalyst",
-            dependencies: ["llama"],
+            dependencies: [
+                "llama",
+                .product(name: "MLXLLM", package: "mlx-swift-lm"),
+                .product(name: "MLXLMCommon", package: "mlx-swift-lm"),
+            ],
             path: "Sources/OnDeviceCatalyst",
             linkerSettings: [
                 .linkedFramework("Metal"),

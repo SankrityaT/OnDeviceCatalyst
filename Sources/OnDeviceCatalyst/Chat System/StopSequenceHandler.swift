@@ -255,7 +255,7 @@ extension ModelArchitecture {
             return ["<|end|>"]
         case .gemma, .gemma2, .gemma3:
             return ["<end_of_turn>"]
-        case .qwen2, .qwen25, .qwen3, .codeQwen, .qwenVL, .yi, .openChat, .internLM, .olmo:
+        case .qwen2, .qwen25, .qwen3, .qwen35, .codeQwen, .qwenVL, .yi, .openChat, .internLM, .olmo:
             return ["<|im_end|>"]
         case .deepSeek, .deepSeekCoder, .deepSeekV3:
             return ["<|end▁of▁sentence|>"]

@@ -209,7 +209,7 @@ public struct StandardPromptFormatter: PromptFormatting {
         // For Qwen3, append /no_think to disable chain-of-thought reasoning
         // This prevents slow <think>...</think> output that users don't want to see
         let effectiveSystemPrompt: String
-        if architecture == .qwen3 && !systemPrompt.contains("/no_think") {
+        if (architecture == .qwen3 || architecture == .qwen35) && !systemPrompt.contains("/no_think") {
             effectiveSystemPrompt = systemPrompt + " /no_think"
         } else {
             effectiveSystemPrompt = systemPrompt

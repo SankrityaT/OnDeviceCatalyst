@@ -28,7 +28,11 @@ public struct InstanceSettings: Codable, Hashable {
 
     // MARK: - Backend Selection
     public var backendType: BackendType
-    
+
+    // MARK: - Embedding Mode
+    /// When true, context is configured for embedding extraction (params.embeddings = true)
+    public var isEmbeddingMode: Bool
+
     /// Initialize with default values optimized for the current device
     public init(
         contextLength: UInt32 = 4096,
@@ -39,7 +43,8 @@ public struct InstanceSettings: Codable, Hashable {
         enableMemoryLocking: Bool = false,
         useFlashAttention: Bool = false,
         seed: UInt32 = 0,
-        backendType: BackendType = .llamaCpp
+        backendType: BackendType = .llamaCpp,
+        isEmbeddingMode: Bool = false
     ) {
         self.contextLength = contextLength
         self.batchSize = batchSize
@@ -50,6 +55,7 @@ public struct InstanceSettings: Codable, Hashable {
         self.useFlashAttention = useFlashAttention
         self.seed = seed == 0 ? UInt32.random(in: 1...UInt32.max) : seed
         self.backendType = backendType
+        self.isEmbeddingMode = isEmbeddingMode
     }
     
     // MARK: - Preset Configurations
@@ -114,7 +120,8 @@ public struct InstanceSettings: Codable, Hashable {
             enableMemoryMapping: true,
             enableMemoryLocking: false,
             useFlashAttention: true,
-            seed: 0
+            seed: 0,
+            isEmbeddingMode: true       // Enable embedding output allocation
         )
     }
     

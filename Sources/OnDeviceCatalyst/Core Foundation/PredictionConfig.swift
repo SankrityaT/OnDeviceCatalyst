@@ -92,7 +92,7 @@ public struct PredictionConfig: Codable, Hashable {
             minP: 0.2,         // Higher threshold for faster decisions
             repetitionPenalty: 1.05, // Lower penalty for speed
             repetitionPenaltyRange: 32, // Shorter range for speed
-            maxTokens: 150     // Limit response length
+            maxTokens: 1024    // Room for think block + full response
         )
     }
     

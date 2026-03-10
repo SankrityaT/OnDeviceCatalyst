@@ -287,17 +287,32 @@ public actor ModelDownloader {
 
         var downloadedBytes = 0
         var lastReportedProgress: Double = 0
+        let bufferSize = 1 * 1024 * 1024  // 1 MB write buffer
+        var buffer = Data(capacity: bufferSize)
 
         for try await byte in asyncBytes {
-            fileHandle.write(Data([byte]))
+            buffer.append(byte)
             downloadedBytes += 1
 
+            // Flush buffer every 1 MB
+            if buffer.count >= bufferSize {
+                fileHandle.write(buffer)
+                buffer.removeAll(keepingCapacity: true)
+            }
+
             // Report progress every ~1%
-            let progress = totalBytes > 0 ? Double(downloadedBytes) / Double(totalBytes) : 0
+            // Use totalMB (known file size) as denominator — totalBytes is the compressed
+            // transfer size (Content-Length), which is smaller than the decompressed file.
+            let progress = Double(downloadedBytes) / Double(totalMB * 1_048_576)
             if progress - lastReportedProgress >= 0.01 {
                 lastReportedProgress = progress
                 onProgress?(progress, downloadedBytes / 1_048_576, totalMB)
             }
+        }
+
+        // Flush remaining bytes
+        if !buffer.isEmpty {
+            fileHandle.write(buffer)
         }
 
         // Move temp file to final location

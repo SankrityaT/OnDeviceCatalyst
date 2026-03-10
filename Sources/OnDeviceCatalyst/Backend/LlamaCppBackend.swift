@@ -215,6 +215,11 @@ public final class LlamaCppBackend: InferenceBackend {
 
     public func getEmbeddings() -> UnsafeMutablePointer<Float>? {
         guard let context = context else { return nil }
+        // For pooled models (BERT, nomic-embed, pooling_type=1), use sequence embedding
+        if let seqEmb = LlamaBridge.getEmbeddingsSeq(context: context, sequenceId: 0) {
+            return seqEmb
+        }
+        // Fallback for non-pooled models
         return LlamaBridge.getEmbeddings(context: context)
     }
 

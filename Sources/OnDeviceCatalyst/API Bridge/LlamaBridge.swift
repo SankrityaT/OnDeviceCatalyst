@@ -151,7 +151,7 @@ public enum LlamaBridge {
         params.n_ubatch = settings.batchSize
         params.n_threads = settings.cpuThreads
         params.n_threads_batch = settings.cpuThreads
-        params.embeddings = false
+        params.embeddings = settings.isEmbeddingMode
 
         print("Catalyst: Creating context - ctx:\(settings.contextLength), batch:\(settings.batchSize), threads:\(settings.cpuThreads)")
 

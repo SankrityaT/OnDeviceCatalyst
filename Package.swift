@@ -10,7 +10,7 @@ import PackageDescription
 // Checksum for the xcframework zip
 // Compute with: swift package compute-checksum llama.xcframework.zip
 // UPDATE THIS after uploading to GitHub releases!
-let xcframeworkChecksum = "64bec1e522513f2b4d705868664f9d654ae0f5a097c8a9a8b89fd74c40542642"
+let xcframeworkChecksum = "13e6fa4b7f91c708ba405ffc2ab9d9118cd137516d12b1fa6a221d889ee803bd"
 
 // ============================================================================
 
@@ -30,25 +30,18 @@ let package = Package(
         .package(url: "https://github.com/ml-explore/mlx-swift-lm/", branch: "main"),
     ],
     targets: [
-        // llama.cpp XCFramework — headers only, no modulemap (avoids collision
-        // with other xcframeworks like sentencepiece). Module defined by CLlama.
+        // llama.cpp XCFramework — headers + modulemap in Headers/llama/ subdirectory
+        // to avoid "Multiple commands produce module.modulemap" collision with other
+        // xcframeworks (e.g. sentencepiece). Clang finds it via llama/module.modulemap.
         .binaryTarget(
-            name: "llama_binary",
-            url: "https://github.com/SankrityaT/OnDeviceCatalyst/releases/download/v2.0.2/llama.xcframework.zip",
+            name: "llama",
+            url: "https://github.com/SankrityaT/OnDeviceCatalyst/releases/download/v2.0.3/llama.xcframework.zip",
             checksum: xcframeworkChecksum
-        ),
-        // C wrapper that provides the `llama` module via its own modulemap.
-        // This avoids "Multiple commands produce module.modulemap" when another
-        // SPM package also ships a binary xcframework with a modulemap.
-        .target(
-            name: "CLlama",
-            dependencies: ["llama_binary"],
-            path: "Sources/CLlama"
         ),
         .target(
             name: "OnDeviceCatalyst",
             dependencies: [
-                "CLlama",
+                "llama",
                 .product(name: "MLXLLM", package: "mlx-swift-lm"),
                 .product(name: "MLXLMCommon", package: "mlx-swift-lm"),
             ],

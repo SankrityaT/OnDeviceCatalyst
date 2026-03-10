@@ -10,7 +10,7 @@ import PackageDescription
 // Checksum for the xcframework zip
 // Compute with: swift package compute-checksum llama.xcframework.zip
 // UPDATE THIS after uploading to GitHub releases!
-let xcframeworkChecksum = "a234cff03412d7df5ad0727e5a8cd3a4d58b5a6a90b695fb2e91d32e5092b5ac"
+let xcframeworkChecksum = "64bec1e522513f2b4d705868664f9d654ae0f5a097c8a9a8b89fd74c40542642"
 
 // ============================================================================
 
@@ -30,17 +30,25 @@ let package = Package(
         .package(url: "https://github.com/ml-explore/mlx-swift-lm/", branch: "main"),
     ],
     targets: [
-        // llama.cpp XCFramework with full model support:
-        // Qwen3, Gemma3, Llama 3.2/3.3, Phi-4, DeepSeek V3, and more
+        // llama.cpp XCFramework — headers only, no modulemap (avoids collision
+        // with other xcframeworks like sentencepiece). Module defined by CLlama.
         .binaryTarget(
-            name: "llama",
-            url: "https://github.com/SankrityaT/OnDeviceCatalyst/releases/download/v2.0.1/llama.xcframework.zip",
+            name: "llama_binary",
+            url: "https://github.com/SankrityaT/OnDeviceCatalyst/releases/download/v2.0.2/llama.xcframework.zip",
             checksum: xcframeworkChecksum
+        ),
+        // C wrapper that provides the `llama` module via its own modulemap.
+        // This avoids "Multiple commands produce module.modulemap" when another
+        // SPM package also ships a binary xcframework with a modulemap.
+        .target(
+            name: "CLlama",
+            dependencies: ["llama_binary"],
+            path: "Sources/CLlama"
         ),
         .target(
             name: "OnDeviceCatalyst",
             dependencies: [
-                "llama",
+                "CLlama",
                 .product(name: "MLXLLM", package: "mlx-swift-lm"),
                 .product(name: "MLXLMCommon", package: "mlx-swift-lm"),
             ],

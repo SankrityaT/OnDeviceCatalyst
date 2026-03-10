@@ -199,6 +199,9 @@ public class MLXInstance {
         }
 
         // Prepare input using chat template
+        if let specs = toolSpecs {
+            print("Catalyst MLX: Passing \(specs.count) tool(s) to chat template")
+        }
         let userInput = UserInput(messages: messages, tools: toolSpecs)
         let lmInput = try await container.prepare(input: userInput)
 
@@ -243,6 +246,8 @@ public class MLXInstance {
                 continuation.yield(.completion(reason: .natural, metadata: metadata))
 
             case .toolCall(let call):
+                print("Catalyst MLX: 🔧 Native tool call detected: \(call.function.name)")
+                print("Catalyst MLX: 🔧 Arguments: \(call.function.arguments)")
                 let args = call.function.arguments.mapValues { jsonValue in
                     AnyCodable(Self.jsonValueToAny(jsonValue))
                 }

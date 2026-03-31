@@ -27,7 +27,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/ml-explore/mlx-swift-lm/", branch: "main"),
+        .package(url: "https://github.com/ml-explore/mlx-swift-lm/", exact: "2.29.3"),
     ],
     targets: [
         // llama.cpp XCFramework — headers + modulemap in Headers/llama/ subdirectory

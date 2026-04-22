@@ -10,7 +10,7 @@ import PackageDescription
 // Checksum for the xcframework zip
 // Compute with: swift package compute-checksum llama.xcframework.zip
 // UPDATE THIS after uploading to GitHub releases!
-let xcframeworkChecksum = "13e6fa4b7f91c708ba405ffc2ab9d9118cd137516d12b1fa6a221d889ee803bd"
+let xcframeworkChecksum = "741c3b584228c290c06bfbced9db161c3e7cb920c85d4d8df4ec54e8188a4e39"
 
 // ============================================================================
 
@@ -33,9 +33,11 @@ let package = Package(
         // llama.cpp XCFramework — headers + modulemap in Headers/llama/ subdirectory
         // to avoid "Multiple commands produce module.modulemap" collision with other
         // xcframeworks (e.g. sentencepiece). Clang finds it via llama/module.modulemap.
+        // Includes an arm64-simulator stub slice so consumers can build for the iOS
+        // Simulator (all llama usage is guarded #if !targetEnvironment(simulator)).
         .binaryTarget(
             name: "llama",
-            url: "https://github.com/SankrityaT/OnDeviceCatalyst/releases/download/v2.0.3/llama.xcframework.zip",
+            url: "https://github.com/SankrityaT/OnDeviceCatalyst/releases/download/v2.0.4/llama.xcframework.zip",
             checksum: xcframeworkChecksum
         ),
         .target(

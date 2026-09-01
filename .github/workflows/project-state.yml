@@ -1,0 +1,36 @@
+name: Project state
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  planning-and-dco:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate roadmap, tickets, specs, ADRs, and links
+        run: python3 scripts/validate-project-state.py
+
+      - name: Test project-state validator
+        run: python3 scripts/test-project-state-validator.py
+
+      - name: Test repository-owned DCO checker
+        run: scripts/test-check-dco.sh
+
+      - name: Validate pull-request DCO sign-offs
+        if: github.event_name == 'pull_request'
+        env:
+          DCO_BASE_REF: origin/${{ github.base_ref }}
+        run: scripts/check-dco.sh

@@ -1,0 +1,39 @@
+name: Apple build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apple-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios-simulator:
+    name: Xcode 26 iOS simulator package
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Validate project state
+        run: python3 scripts/validate-project-state.py
+
+      - name: Resolve dependencies
+        run: swift package resolve
+
+      - name: Build package for the iOS 17 deployment target
+        run: |
+          CATALYST_SDK_PATH="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+          swift build \
+            --triple arm64-apple-ios17.0-simulator \
+            --sdk "$CATALYST_SDK_PATH"

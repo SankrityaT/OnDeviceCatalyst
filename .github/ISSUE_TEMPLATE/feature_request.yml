@@ -1,0 +1,68 @@
+name: Feature proposal
+description: Start discovery for a focused improvement to the shared framework.
+title: "[Proposal]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Substantial work requires a tracked specification and founder approval before implementation.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Developer problem
+      description: What concrete problem cannot be solved well with the current package?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Current evidence
+      description: Link current primary sources, reproductions, or measurements. State when you last verified them.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed capability
+      description: Describe intended behavior, not only implementation details.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Public API
+        - llama.cpp backend
+        - MLX backend
+        - Apple system-model backend
+        - Model delivery
+        - Streaming and sessions
+        - Structured output and tools
+        - Embeddings
+        - Benchmark tooling
+        - Packaging and CI
+        - Documentation and examples
+    validations:
+      required: true
+  - type: textarea
+    id: platforms
+    attributes:
+      label: Platforms and devices
+      description: Name required Apple platforms, OS versions, and device classes.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Could this live in an application, optional adapter, upstream runtime, or separate package?
+  - type: textarea
+    id: maintenance
+    attributes:
+      label: Maintenance and compatibility impact
+      description: Include dependencies, binary size, model formats, tests, platform minimums, and migration cost.
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Participation
+      options:
+        - label: I am willing to help with the specification, implementation, or device testing.

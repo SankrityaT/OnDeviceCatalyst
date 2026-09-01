@@ -1,0 +1,75 @@
+name: Bug report
+description: Report a reproducible problem in the package or a supported backend.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not include credentials, private model URLs, personal data, device identifiers, confidential research, or security exploit details.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Provide the smallest code sample and exact steps that reproduce the problem.
+      render: swift
+    validations:
+      required: true
+  - type: input
+    id: revision
+    attributes:
+      label: Package version or revision
+      placeholder: v2.0.4 or a commit SHA
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Device model, OS, Xcode, and simulator or physical device. Do not include serials or UDIDs.
+      placeholder: iPhone 16 Pro Max, iOS 26.5, Xcode 26.6, physical device
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Backend or area
+      options:
+        - llama.cpp
+        - MLX
+        - Experimental custom Metal
+        - Model assets or cache
+        - Streaming, chat, or tools
+        - Packaging or build
+        - Backend-independent
+        - Unknown
+    validations:
+      required: true
+  - type: textarea
+    id: model
+    attributes:
+      label: Model details
+      description: Repository, revision, filename, checksum, quantization, and settings. Do not include access tokens.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Redacted logs
+      description: Remove credentials, private paths, personal data, serials, and identifiers.
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues for this problem.
+          required: true
+        - label: I removed secrets, private URLs, personal data, serials, and UDIDs.
+          required: true
+        - label: This is not a confidential security vulnerability.
+          required: true

@@ -1,0 +1,49 @@
+# OnDeviceCatalyst Tickets
+
+This is the canonical public execution ledger. GitHub Issues are discussion and
+assignment mirrors. A backlog ticket may have no spec yet, but every active
+ticket must link to one.
+
+| ID | Type | Title | Milestone | Status | Priority | Dependencies | Spec | GitHub Issue | Owner | Updated | Next Gate |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ODC-0000 | process | Project operating system | P0 | DONE | P0 | none | [spec](docs/specs/ODC-0000-project-operating-system.md) | TBD | SankrityaT | 2026-08-25 | complete |
+| ODC-0001 | process | Open-source foundation | P0 | DONE | P0 | ODC-0000 | [spec](docs/specs/ODC-0001-open-source-foundation.md) | TBD | SankrityaT | 2026-08-25 | complete |
+| ODC-0002 | baseline | Reproduce v2 build and dependency state | P0 | REVISION | P0 | ODC-0000 | [spec](docs/specs/ODC-0002-v2-baseline.md) | TBD | SankrityaT | 2026-09-01 | resolve 6 blocking review findings |
+| ODC-0003 | benchmark | Cross-backend benchmark contract | P0 | BACKLOG | P0 | ODC-0002 | TBD | TBD | unassigned | 2026-08-25 | discovery |
+| ODC-0004 | test | V2 characterization suite | P0 | BACKLOG | P0 | ODC-0002 | TBD | TBD | unassigned | 2026-08-25 | discovery |
+| ODC-0005 | design | WWDC25 Apple-native design brief | P0 | BACKLOG | P0 | ODC-0002 | TBD | TBD | unassigned | 2026-08-25 | discovery |
+| ODC-0100 | architecture | V3 vision and migration | P1 | BLOCKED | P0 | ODR-0005, ODC-0005 | TBD | TBD | unassigned | 2026-08-25 | research thesis |
+| ODC-0101 | architecture | Swift 6 concurrency and lifecycle | P1 | BACKLOG | P0 | ODC-0100 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0102 | api | Public inference contracts | P1 | BACKLOG | P0 | ODC-0100, ODC-0101 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0103 | packaging | Modular package graph | P1 | BACKLOG | P0 | ODC-0100, ODC-0102 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0104 | api | Model identity and ownership | P1 | BACKLOG | P1 | ODC-0102 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0200 | backend | Maintained llama.cpp backend | P2 | BACKLOG | P0 | ODC-0103, ODC-0104 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0201 | backend | Current MLX backend | P2 | BACKLOG | P0 | ODC-0103, ODC-0104 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0202 | runtime | Sessions, streams, cancellation, and context | P2 | BACKLOG | P0 | ODC-0200, ODC-0201 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0203 | runtime | Structured generation and tools | P2 | BACKLOG | P1 | ODC-0202 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0204 | runtime | Single and batch embeddings | P2 | BACKLOG | P1 | ODC-0200, ODC-0201 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0205 | assets | Verified model asset lifecycle | P2 | BACKLOG | P1 | ODC-0104 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0206 | assets | Apple Background Assets integration | P2 | BACKLOG | P2 | ODC-0205, ODC-0005 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0207 | backend | IOS 26 Apple system-model backend | P2 | BACKLOG | P1 | ODC-0102, ODC-0005 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0300 | example | Maintained package-consuming sample app | P3 | BACKLOG | P1 | ODC-0202, ODC-0203, ODC-0204 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0301 | docs | DocC and v2-to-v3 migration | P3 | BACKLOG | P1 | ODC-0200, ODC-0201 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0302 | validation | Apple-platform lifecycle matrix | P3 | BACKLOG | P0 | ODC-0200, ODC-0201, ODC-0202 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0303 | validation | Device and model compatibility matrix | P3 | BACKLOG | P1 | ODC-0003, ODC-0302 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0304 | process | Release and support policy | P3 | BACKLOG | P1 | ODC-0301, ODC-0302 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0399 | release | V3 release review | P3 | BACKLOG | P0 | ODC-0300, ODC-0301, ODC-0302, ODC-0303, ODC-0304 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
+| ODC-0800 | backend | Integrate released research backend | R1 | BLOCKED | P2 | ODR-0202, ODC-0399 | TBD | TBD | unassigned | 2026-08-25 | public research release |
+
+## Status definitions
+
+- `BACKLOG`: identified, but discovery has not started.
+- `DISCOVERY`: gathering current facts, prior art, and repository evidence.
+- `SPEC_DRAFT`: a spec exists but has not entered formal review.
+- `SPEC_REVIEW`: review is active and founder approval is pending.
+- `REVISION`: review found changes required before approval.
+- `APPROVED`: decision-complete and authorized for implementation.
+- `IMPLEMENTING`: code or documentation is being changed to satisfy the spec.
+- `VALIDATING`: implementation is complete and acceptance evidence is running.
+- `DONE`: accepted implementation and evidence are complete.
+- `BLOCKED`: a named dependency prevents progress.
+- `DEFERRED`: intentionally postponed.
+- `REJECTED`: considered and declined.

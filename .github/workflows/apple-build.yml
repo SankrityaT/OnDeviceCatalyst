@@ -37,3 +37,41 @@ jobs:
           swift build \
             --triple arm64-apple-ios17.0-simulator \
             --sdk "$CATALYST_SDK_PATH"
+
+  characterization-suite:
+    name: ODC-0004 v2 characterization suite
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Validate project state
+        run: python3 scripts/validate-project-state.py
+
+      - name: Checker self-tests
+        run: |
+          python3 scripts/test-check-characterization.py
+          sh scripts/test-run-characterization.sh
+
+      - name: R0 packaging, fingerprint, naming, and orphan checks
+        run: python3 scripts/check-characterization.py --naming --orphans --fingerprints
+
+      - name: Run the suite on the iOS Simulator (SFC-B)
+        run: scripts/run-characterization.sh --surface simulator --ledger-out /tmp/odc-0004-ledger.txt
+
+      - name: R0 packaging checks against the built artifacts
+        run: python3 scripts/check-characterization.py --packaging
+
+      - name: Audit the skip ledger
+        run: python3 scripts/check-characterization.py --skips /tmp/odc-0004-ledger.txt
+
+      - name: Inventory agreement between the suite and the spec catalog
+        run: |
+          python3 scripts/check-characterization.py --inventory \
+            --require-defects D1,D2,D3,D4,D5,D6,D7,D8,N1
+
+      - name: ODC-0002 baseline is still valid
+        run: python3 scripts/check-baseline.py

@@ -1,0 +1,44 @@
+{
+  "fingerprints": [
+    {
+      "id": "F-D1-1",
+      "ticket": "ODC-0010",
+      "file": "Sources/OnDeviceCatalyst/Service Layer/Catalyst.swift",
+      "anchor": "public func releaseInstance\\(",
+      "note": "releaseInstance caches a ready instance then shuts it down; the reader never re-checks isReady",
+      "sha256": "e0ee6b9fb1d7d46e4022aad8778e7eb8fc5fbce71351fb1a61bd639ca122a1e4"
+    },
+    {
+      "id": "F-D2-1",
+      "ticket": "ODC-0011",
+      "file": "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift",
+      "anchor": "private func performGeneration\\(",
+      "note": "performGeneration appends a second, always-.natural completion after generateTokens already emitted one",
+      "sha256": "9cb03e2c70667876584255186a451acfa225fe8a834eeaba592e579eeed2635b"
+    },
+    {
+      "id": "F-D2-2",
+      "ticket": "ODC-0011",
+      "file": "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift",
+      "anchor": "private func generateTokens\\(",
+      "note": "generateTokens' five completion emit sites (userCancelled, natural/EOG, stop-sequence-derived, contextWindowFull, maxTokensReached)",
+      "sha256": "149f437fb707ecdfc876ca9a7b69601369a4a4cb2cffe151fc3dc6b879450ac4"
+    },
+    {
+      "id": "F-D3-1",
+      "ticket": "ODC-0012",
+      "file": "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift",
+      "anchor": "private func publishProgress\\(",
+      "note": "publishProgress gates on `if case .ready = progress, case .failed = progress`, an AND over one value, unsatisfiable",
+      "sha256": "fc380539a958abe46cd74121d6136be06ee0d97e34e66ffea846dd5b49b81a1a"
+    },
+    {
+      "id": "F-D8-1",
+      "ticket": "ODC-0015",
+      "file": "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift",
+      "anchor": "private func handleInitializationError\\(",
+      "note": "handleInitializationError calls cleanup() before attemptFallbackInitialization, so every fallback-path publishProgress is a silent no-op",
+      "sha256": "22587789cb78e180d4a75397e1d295090b7ae11dad107975a00bc37619896884"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  ODC-0004: tracked Info.plist build input for the repackaged flat iOS
+  .xctest bundle. SwiftPM emits a macOS-shaped test bundle even when
+  cross-compiling for the iOS Simulator (spec N10); this is the minimal
+  Info.plist the platform xctest agent needs to treat the repackaged bundle
+  as an iOS-simulator xctest bundle rather than a macOS one.
+  scripts/run-characterization.sh substitutes __BINARY_NAME__ for the actual
+  compiled test binary's name.
+-->
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>__BINARY_NAME__</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.ondevicecatalyst.characterization.xctest</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>__BINARY_NAME__</string>
+	<key>CFBundlePackageType</key>
+	<string>BNDL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>iPhoneSimulator</string>
+	</array>
+	<key>MinimumOSVersion</key>
+	<string>17.0</string>
+	<key>DTPlatformName</key>
+	<string>iphonesimulator</string>
+</dict>
+</plist>

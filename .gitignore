@@ -36,3 +36,10 @@ build/
 # Temporary files
 *.tmp
 *.temp
+
+# Private research and agent working directory.
+# The private research track lives in a SEPARATE PRIVATE repository, cloned to
+# .context/research for local work. It must never be committed here.
+# This was previously protected only by a machine-local .git/info/exclude rule,
+# which does not travel to clones. Tracked so every contributor is protected.
+.context/

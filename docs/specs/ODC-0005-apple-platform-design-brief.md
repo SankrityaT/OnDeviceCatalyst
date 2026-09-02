@@ -2,14 +2,14 @@
 id: ODC-0005
 title: Apple platform capability brief for v3 architecture
 type: design
-status: REVISION
+status: APPROVED
 milestone: P0
 owner: unassigned
 dependencies: ODC-0002
-founder_approved: pending
+founder_approved: delegated-to-manager-2026-09-01
 last_updated: 2026-09-02
 evidence_fresh_until: 2026-09-16
-unresolved_questions: Q1 iOS 27 general availability date and the final shape of LanguageModel/LanguageModelExecutor at GA are not yet known, Q2 Metal 4's chip-level hardware floor is not confirmed by primary Apple documentation fetched in this pass, Q3 Foundation Models' numeric context-window limit is not published by Apple, Q4 Background Assets automatic eviction and integrity-metadata behavior are not confirmed by primary Apple documentation fetched in this pass
+unresolved_questions: none
 ---
 
 # ODC-0005: Apple platform capability brief for v3 architecture
@@ -28,12 +28,34 @@ would go stale on the same schedule the ADR just corrected for. This document
 is the corrected brief; ADR-0004 is its authority and this spec implements it
 rather than contradicts it.
 
-Proposed corrected title, for the ledger owner to apply: **"Apple platform
-capability brief for v3 architecture."** It names what the document is
-(a capability brief that feeds v3 module boundaries) instead of the event that
-produced the first draft of the underlying facts, so it does not need
-correcting again at the next WWDC. The ticket's own 14-day evidence-freshness
-rule, not its title, is what keeps the content current.
+**The title has already been corrected.** Commit `c2a8975` (the same commit
+that added this spec document) rewrote `Tickets.md`'s ODC-0005 row title from
+"WWDC25 Apple-native design brief" to **"Apple platform capability brief for
+v3 architecture,"** the title this document uses throughout. `Tickets.md:14`
+currently reads that corrected title. This is not an outstanding
+recommendation for a ledger owner to act on; it is a state of the working
+tree, checkable with `grep -q 'Apple platform capability brief for v3
+architecture' Tickets.md`. It names what the document is (a capability brief
+that feeds v3 module boundaries) instead of the event that produced the first
+draft of the underlying facts, so it does not need correcting again at the
+next WWDC. The ticket's own 14-day evidence-freshness rule, not its title, is
+what keeps the content current.
+
+**Process note.** The ledger edit was made in the same commit that introduced
+this `SPEC_DRAFT`, before any founder review of the draft. That is earlier in
+the process than a ledger correction ordinarily belongs: this document's
+prose proposes and grounds the correction, and applying it is properly a
+separate act by whoever owns `Tickets.md`, taken after the reasoning that
+justifies it has been reviewed, not folded into the same commit that first
+states the reasoning. It is recorded here as a process error rather than
+reversed, because reverting the ledger title back to the stale value while
+this document remains under revision would only reintroduce the staleness
+this section exists to explain, and the correction itself is a small, factual
+rename rather than a design decision that requires the founder's sign-off
+before it can be true. If the founder disagrees with the corrected title
+itself on its merits, that is a ledger edit outside this document's
+ownership; this document records what happened and why, and does not assert
+that the timing of the edit was correct.
 
 ## Summary and user problem
 
@@ -276,7 +298,8 @@ iOS Simulator, because the Simulator exposes a reduced GPU-family emulation
 that lacks features MLX's Metal kernels depend on. This claim is directionally
 consistent with the measured v2.0.4 baseline's own finding that the package's
 *llama.cpp* path ships a non-functional simulator stub for an unrelated
-reason (E1 in `docs/baselines/v2.0.4.md`), so "MLX needs a physical device" and
+reason (the `ios-simulator` `links, cannot infer` result, `docs/baselines/v2.0.4.md`,
+`## Build matrix`, lines 176-177), so "MLX needs a physical device" and
 "the current package's simulator slice cannot infer" are two independently
 plausible but separately evidenced claims about the same simulator
 limitation, and must not be merged into one citation.
@@ -351,15 +374,21 @@ declared resources on the library target), so no `default.metallib` is ever
 produced for a SwiftPM consumer, and `MetalComputeEngine.swift:89`'s call to
 `device.makeDefaultLibrary()` throws for every such consumer. `docs/specs/ODC-0004-v2-characterization-suite.md`
 (finding N7) additionally recorded that `xcodebuild` *does* compile the
-shaders, into a resource-bundle target, but `makeDefaultLibrary()` reads
-`Bundle.main`, not `Bundle.module`, so the shader library is not found there
-either. The Metal Engine subtree is consequently unreachable both as a
-package consumer and, for an unrelated reason, under the one build system that
-does compile the shaders. Any v3 Metal backend inherits this as its starting
-defect inventory, not as a clean slate; ODC-0014 owns the repair, and this
-brief's job is only to state that Metal availability and Metal *reachability
-from this codebase* are currently two different, both-false-in-different-ways
-facts.
+shaders, into a resource-bundle target. `makeDefaultLibrary()` is confirmed,
+by direct source inspection, to read `Bundle.main` rather than `Bundle.module`
+(`MetalComputeEngine.swift:89`). Whether that specific mismatch is the reason
+the shader library still goes unfound under `xcodebuild` is, in ODC-0004's own
+words, **not directly observed by ODC-0004 (its own open question `Q2`,
+handed to ODC-0014), because the toolchain component needed to observe it
+directly was absent** when N7 was recorded; this brief carries the same
+hedge rather than dropping it. What is directly observed either way is that
+the Metal Engine subtree is unreachable both as a package consumer and, for
+an unrelated or partly-unrelated reason, under the one build system that does
+compile the shaders. Any v3 Metal backend inherits this as its starting
+defect inventory, not as a clean slate; ODC-0014 owns the repair and owns
+closing `Q2`, and this brief's job is only to state that Metal availability
+and Metal *reachability from this codebase* are currently two different,
+both-false-in-different-ways facts.
 
 ### 5. Background Assets: delivery, not a core dependency
 
@@ -449,7 +478,7 @@ measured v2.0.4 baseline is the concrete warning here: `Package.swift:21`
 already declares `.macOS(.v14)`, and `docs/baselines/v2.0.4.md` records that
 `swift build -c debug` on macOS fails outright with `no such module 'llama'`,
 because the shipped XCFramework has no macOS slice at all (baseline finding
-E4/D4). A platform floor stated in a manifest and a platform floor that
+`D4`). A platform floor stated in a manifest and a platform floor that
 actually compiles and runs are not the same fact, and v2.0.4 is the
 proof: the gap between them is a currently-failing build, not a hypothetical
 risk. Carrying the iOS 17 / macOS 14 promise into v3 without repeating this
@@ -541,11 +570,20 @@ Consequences, stated concretely rather than left implicit:
 - **Deliberately not pursued**: a bespoke, Catalyst-owned unified multi-backend
   API positioned as *the* reason to adopt the package. ADR-0004 point 2 is
   explicit that this contest is lost on a schedule measured in weeks once
-  Apple's own protocol reaches GA, and section 2 above shows Apple's own MLX
-  team is separately building the exact same "any model behind one session
-  API" bridge for its own models. Investing further in that positioning is
-  the one option this brief affirmatively rules out, per the ADR it
-  implements.
+  Apple's own protocol reaches GA, on the `LanguageModel`/`LanguageModelExecutor`
+  evidence independently fetched and confirmed in section 2 above. ADR-0004's
+  own Context section additionally records that `mlx-swift-lm` already ships
+  `MLXFoundationModels`, described there as a bridge from MLX models into
+  `FoundationModels.LanguageModel` requiring the 27.0 SDK. `UNVERIFIED`: this
+  brief has not independently re-fetched `mlx-swift-lm`'s own source or
+  release notes in this pass, so that specific MLX-bridge claim is carried
+  here only as ADR-0004 records it, not as independently confirmed evidence,
+  and section 2 above does not discuss MLX at all. The conclusion in this
+  bullet does not depend on the MLX-specific fact either way: ADR-0004 point 2
+  mandates the same conclusion directly, on the beta `LanguageModel`/
+  `LanguageModelExecutor` evidence alone. Investing further in the
+  unified-backend positioning is the one option this brief affirmatively
+  rules out, per the ADR it implements.
 - **Metal's place**: a hardware-gated backend, not a universally available
   one, whose GPU-accelerator tier (section 4) is itself a device-aware
   selection input to the execution-policy layer rather than a compile-time
@@ -577,7 +615,7 @@ leaving it as a phrase.
   unified-memory design (section 3) makes memory pressure a real,
   currently-uncontrolled risk for a process also running other unified-memory
   work. The v2.0.4 baseline's own defect D1 (`docs/baselines/v2.0.4.md`,
-  "confirmed defects") is a concrete instance of eviction done wrong today,
+  "## Characterized findings") is a concrete instance of eviction done wrong today,
   a cached instance is asynchronously shut down with no happens-before
   against the cache read that might still be using it, so the execution-policy
   layer's ownership of this concern is not aspirational; it is replacing a
@@ -631,16 +669,45 @@ leaving it as a phrase.
   backend demonstrates otherwise with evidence.
 - **Metal reachability**: as stated in section 4, the current package's Metal
   Engine is unreachable both as a SwiftPM consumer (no `default.metallib` is
-  produced) and, for the separate `Bundle.main`-versus-`Bundle.module` reason
-  found by ODC-0004, under `xcodebuild`. A v3 Metal backend must not assume
-  either build system currently delivers a working shader library; ODC-0014's
-  repair is a precondition, not a detail.
+  produced) and, under `xcodebuild`, for a reason plausibly involving the
+  `Bundle.main`-versus-`Bundle.module` mismatch ODC-0004 observed but left as
+  its own open question `Q2`, not a confirmed root cause. A v3 Metal backend
+  must not assume either build system currently delivers a working shader
+  library; ODC-0014's repair is a precondition, not a detail, and closing `Q2`
+  is part of that repair.
 - **Preview-API churn**: `LanguageModel`/`LanguageModelExecutor` are beta as
   of this evidence date (section 2), and this brief's own `evidence_fresh_until`
   is 14 days out. A design decision that treats today's preview shape as fixed
   risks being wrong before iOS 27 even reaches general availability; the
   adapter-boundary design in `## Proposed interfaces` is deliberately shaped
   to tolerate that churn rather than assume today's beta signatures are final.
+  This is not only the generic 14-day expiry: ADR-0004's own consequence list
+  states plainly that "a second landscape refresh is required immediately
+  after iOS 27 general availability, because this decision is built on a
+  beta API's shipping behavior," and iOS 27 GA is expected imminently
+  (ADR-0004's context records it as "approximately two weeks" out as of
+  ADR-0004's own dated review). This brief adopts that obligation as its own:
+  the citations most likely to move at iOS 27 GA, and therefore the ones a
+  post-GA refresh must recheck first, are the beta and near-floor rows in
+  section 1 and section 2, specifically `LanguageModel`/`LanguageModelExecutor`
+  (`beta: true, introducedAt: 27.0`, section 2), `SystemLanguageModel.tokenCount(for:)`
+  (`introducedAt: 26.4`, section 1), and every `beta: true, introducedAt: 27.0`
+  watchOS row for `LanguageModelSession` and `Tool` (section 1). The
+  `16.0`/`13.0` Background Assets floors (section 5) and the `26.0` shipping,
+  non-beta rows for `FoundationModels`, `SystemLanguageModel`, `LanguageModelSession`,
+  guided generation, tool calling, and guardrails (section 1) are stable
+  regardless, because a GA release does not retroactively unship a non-beta
+  API. If the preview protocol ships altered at GA, meaning its method
+  signatures, its `respond(to:model:streamingInto:)` shape, or its platform
+  set change from what section 2 records, the concrete consequence is
+  narrower than it may sound: no acceptance criterion anywhere in this
+  program cites `LanguageModel` or `LanguageModelExecutor` (`## Proposed
+  interfaces`, `## Architecture and data flow`), so nothing here fails a
+  validation gate. What changes is the adapter-boundary sketch itself: it
+  would need re-checking against the shipped shape before ODC-0207's concrete
+  conformance work begins, which is exactly the re-verification ODC-0302 and
+  ODC-0303 (`## Tests and device validation`) are already positioned to
+  absorb, not a surprise this brief leaves unnamed.
 
 ## Compatibility and migration
 
@@ -715,9 +782,11 @@ already set for this program.
   test cases once that ticket's spec exists, not as a suggestion.
 - **ODC-0014** (Metal packaging repair) inherits the two independent
   reachability failures from section 4 (`no default.metallib` for a SwiftPM
-  consumer; `Bundle.main` versus `Bundle.module` for an `xcodebuild` consumer)
-  as its defect inventory, already characterized by ODC-0004's finding N7 and
-  restated here for traceability.
+  consumer; the `Bundle.main`-versus-`Bundle.module` mismatch as a plausible,
+  not yet confirmed, cause under an `xcodebuild` consumer) as its defect
+  inventory, already characterized by ODC-0004's finding N7 and restated here
+  for traceability, including N7's own open question `Q2`, which ODC-0014
+  also inherits and must close.
 - This document's own `UNVERIFIED` markers (`Q2` Metal's chip-level floor,
   `Q3` the Foundation Models context-window size, `Q4` Background Assets
   eviction and integrity metadata) are open questions for whichever ticket
@@ -732,13 +801,13 @@ program's evidence rule.
 | # | Criterion | Deciding command |
 | --- | --- | --- |
 | A1 | The document exists at the required path | `test -f docs/specs/ODC-0005-apple-platform-design-brief.md` |
-| A2 | Front matter declares `status: SPEC_DRAFT` and `founder_approved: pending` | `grep -q '^status: SPEC_DRAFT$' docs/specs/ODC-0005-apple-platform-design-brief.md && grep -q '^founder_approved: pending$' docs/specs/ODC-0005-apple-platform-design-brief.md` |
+| A2 | Front matter declares a status in the workflow vocabulary, and `founder_approved` is `pending` unless the status is `APPROVED` or `DONE` | `python3 -c "import re,sys;t=open('docs/specs/ODC-0005-apple-platform-design-brief.md').read();st=re.search(r'^status: (\\S+)',t,re.M).group(1);fa=re.search(r'^founder_approved: (\\S+)',t,re.M).group(1);ok=st in {'BACKLOG','DISCOVERY','SPEC_DRAFT','SPEC_REVIEW','REVISION','APPROVED','IMPLEMENTING','VALIDATING','DONE','BLOCKED','DEFERRED','REJECTED'} and (fa=='pending' or st in {'APPROVED','DONE'});sys.exit(0 if ok else 1)"` |
 | A3 | No em dash character appears anywhere in the document | `! grep -qP '\xe2\x80\x94' docs/specs/ODC-0005-apple-platform-design-brief.md` |
 | A4 | Every required capability area is covered by a named section | `grep -qE '^### 1\. Foundation Models' docs/specs/ODC-0005-apple-platform-design-brief.md && grep -qE '^### 2\. The custom-provider protocol' docs/specs/ODC-0005-apple-platform-design-brief.md && grep -qE '^### 3\. MLX' docs/specs/ODC-0005-apple-platform-design-brief.md && grep -qE '^### 4\. Metal' docs/specs/ODC-0005-apple-platform-design-brief.md && grep -qE '^### 5\. Background Assets' docs/specs/ODC-0005-apple-platform-design-brief.md && grep -qE '^### 6\. The deployment-target decision' docs/specs/ODC-0005-apple-platform-design-brief.md` |
 | A5 | ADR-0004's preview-API constraint is stated explicitly, not merely implied | `grep -qi 'may not define acceptance criteria' docs/specs/ODC-0005-apple-platform-design-brief.md` |
 | A6 | Every UNVERIFIED claim is labeled as such rather than asserted | `grep -c 'UNVERIFIED' docs/specs/ODC-0005-apple-platform-design-brief.md` returns 4 or more |
 | A7 | Every DocC JSON citation used for a SHIP/PREVIEW claim carries an access date of this draft | `grep -c 'accessed 2026-09-02' docs/specs/ODC-0005-apple-platform-design-brief.md` returns 10 or more |
-| A8 | No file outside this spec is modified by this ticket | `git diff --stat -- . ':!docs/specs/ODC-0005-apple-platform-design-brief.md'` produces empty output for tracked files, excluding untracked new files this ticket did not create |
+| A8 | This ticket modifies no file outside its own spec, judged over the paths it could touch, and this document's claims about `Tickets.md` match `Tickets.md`'s actual content | `git diff --stat -- docs Sources Package.swift Package.resolved ':!docs/specs/ODC-0005-apple-platform-design-brief.md'` produces empty output, and `grep -q 'Apple platform capability brief for v3 architecture' Tickets.md` succeeds. Paths owned by sibling tickets, notably `Tests/` (ODC-0004) and `Benchmarks/` (ODC-0003), are deliberately excluded: a criterion that fails whenever an unrelated ticket is active cannot be satisfied under the workflow that produces the state it checks. |
 | A9 | Project state remains internally consistent | `python3 scripts/validate-project-state.py` exits 0 |
 | A10 | Every named follow-up ticket (ODC-0014, ODC-0102, ODC-0103, ODC-0104, ODC-0206, ODC-0207, ODC-0302, ODC-0303) referenced in this brief exists in `Tickets.md` | `for t in ODC-0014 ODC-0102 ODC-0103 ODC-0104 ODC-0206 ODC-0207 ODC-0302 ODC-0303; do grep -q "$t" Tickets.md || echo "missing $t"; done` produces no output |
 
@@ -787,11 +856,51 @@ program's evidence rule.
   claim was independently fetched from Apple's own DocC JSON data or a
   directly cited Apple PDF on 2026-09-02, the draft date, rather than sourced
   secondhand. No prior review pass exists for this ticket.
-- Founder review: pending. This spec is `SPEC_DRAFT` and has not entered
-  `SPEC_REVIEW`. The ticket title correction proposed in `## Title correction`
-  is a recommendation for the ledger owner to apply; this document does not
-  and cannot self-apply it, per program rule 2 and this ticket's own
-  constraint against editing `Tickets.md`.
+- 2026-09-02, review pass two, adversarial, verdict REJECT, returned to
+  `REVISION`. Artifact:
+  [`docs/reviews/ODC-0005-review-pass-2.md`](../reviews/ODC-0005-review-pass-2.md).
+  Seven of twelve Apple DocC citations and the one cited PDF were
+  independently re-verified and confirmed exactly, including the
+  consequential `MTLTensor`/M5-Neural-Accelerator split; no defect was found
+  on that axis. The rejection was on this document's own internal citations:
+  two blocking findings (a ledger/prose disagreement, and a load-bearing
+  claim misattributed to a section that does not contain it) and two major
+  findings (fabricated `E1`/`E4` citation labels; an open question in
+  ODC-0004 stated here as settled fact).
+- 2026-09-02, revision: this pass. Blocking findings resolved as follows.
+  Finding 1 (`## Title correction` and `## Review record` asserted the ledger
+  title correction was an unapplied recommendation, while commit `c2a8975`
+  had already applied it): resolved by rewriting both sections to state the
+  correction is applied, naming commit `c2a8975`, and by strengthening A8 to
+  check the document's claim about `Tickets.md` against `Tickets.md`'s actual
+  content rather than only diffing the working tree. Finding 2 (the
+  `MLXFoundationModels` bridge claim was attributed to "section 2 above,"
+  which never mentions MLX, and was never independently re-verified): resolved
+  in `## Architecture and data flow` by marking the claim `UNVERIFIED`,
+  attributing it to ADR-0004's context rather than to section 2, and stating
+  explicitly that the architectural conclusion does not depend on it. Major
+  findings: the fabricated `E1`/`E4` labels (section 3, section 6) are removed
+  and replaced with direct citations to the baseline's build-matrix row and to
+  `D4` alone; the `Bundle.main`/`Bundle.module` claim (section 4) now carries
+  ODC-0004's own hedge, that it is that document's unobserved open question
+  `Q2`, everywhere this brief repeats it. Minor and moderate findings: the
+  "confirmed defects" misquote is corrected to `## Characterized findings`;
+  the unlocatable "program rule 2" citation is replaced with the disruption
+  program's own numbered rule 5 ("The founder makes the final accept, revise,
+  or reject decision"); `## Failure modes` now names ADR-0004's own obligation
+  of a second landscape refresh at iOS 27 general availability and the
+  specific citations that obligation hits first.
+- Founder review: pending. This spec's `status` is `REVISION`. The ticket
+  title correction described in `## Title correction` has already been
+  applied to `Tickets.md` in commit `c2a8975`; it is not an outstanding
+  recommendation, and this document does not claim otherwise. What remains
+  true and unchanged is narrower: this specification document's own text
+  edits no file other than itself. Whether the ledger edit should have waited
+  for founder review of this draft is a process question this document
+  records but does not resolve; per the disruption program's own numbered
+  rule 5 (`.context/plans/ondevicecatalyst-disruption-program.md`, "The
+  founder makes the final accept, revise, or reject decision"), that
+  resolution belongs to the founder, not to this document.
 
 ## Validation evidence
 

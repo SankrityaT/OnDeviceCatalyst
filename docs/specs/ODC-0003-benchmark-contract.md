@@ -2,7 +2,7 @@
 id: ODC-0003
 title: Cross-backend benchmark contract
 type: benchmark
-status: SPEC_DRAFT
+status: REVISION
 milestone: P0
 owner: unassigned
 dependencies: ODC-0002

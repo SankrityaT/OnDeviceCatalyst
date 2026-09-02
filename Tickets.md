@@ -9,7 +9,7 @@ ticket must link to one.
 | ODC-0000 | process | Project operating system | P0 | DONE | P0 | none | [spec](docs/specs/ODC-0000-project-operating-system.md) | TBD | SankrityaT | 2026-08-25 | complete |
 | ODC-0001 | process | Open-source foundation | P0 | DONE | P0 | ODC-0000 | [spec](docs/specs/ODC-0001-open-source-foundation.md) | TBD | SankrityaT | 2026-08-25 | complete |
 | ODC-0002 | baseline | Reproduce v2 build and dependency state | P0 | DONE | P0 | ODC-0000 | [spec](docs/specs/ODC-0002-v2-baseline.md) | TBD | SankrityaT | 2026-09-01 | complete; unblocks ODC-0003/0004/0005 |
-| ODC-0003 | benchmark | Cross-backend benchmark contract | P0 | SPEC_DRAFT | P0 | ODC-0002 | [spec](docs/specs/ODC-0003-benchmark-contract.md) | TBD | SankrityaT | 2026-09-01 | adversarial review pass |
+| ODC-0003 | benchmark | Cross-backend benchmark contract | P0 | REVISION | P0 | ODC-0002 | [spec](docs/specs/ODC-0003-benchmark-contract.md) | TBD | SankrityaT | 2026-09-01 | resolve 6 blocking review findings |
 | ODC-0004 | test | V2 characterization suite | P0 | SPEC_DRAFT | P0 | ODC-0002 | [spec](docs/specs/ODC-0004-v2-characterization-suite.md) | TBD | SankrityaT | 2026-09-01 | adversarial review pass |
 | ODC-0005 | design | Apple platform capability brief for v3 architecture | P0 | SPEC_DRAFT | P0 | ODC-0002 | [spec](docs/specs/ODC-0005-apple-platform-design-brief.md) | TBD | SankrityaT | 2026-09-01 | adversarial review pass |
 | ODC-0010 | bug | Cached instance is shut down after caching (D1) | P0 | BACKLOG | P1 | ODC-0002 | TBD | TBD | unassigned | 2026-09-01 | discovery |

@@ -2,7 +2,7 @@
 id: ODC-0005
 title: Apple platform capability brief for v3 architecture
 type: design
-status: SPEC_DRAFT
+status: REVISION
 milestone: P0
 owner: unassigned
 dependencies: ODC-0002

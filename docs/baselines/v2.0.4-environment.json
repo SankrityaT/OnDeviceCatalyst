@@ -718,7 +718,7 @@
       ],
       "bucket": "runtime-concurrency-lifecycle",
       "actionable": true,
-      "ticket": "ODC-0101"
+      "ticket": "ODC-0010"
     },
     {
       "id": "D2",
@@ -730,7 +730,7 @@
       ],
       "bucket": "runtime-stream-protocol",
       "actionable": true,
-      "ticket": "ODC-0202"
+      "ticket": "ODC-0011"
     },
     {
       "id": "D3",
@@ -742,7 +742,7 @@
       ],
       "bucket": "runtime-stream-protocol",
       "actionable": true,
-      "ticket": "ODC-0202"
+      "ticket": "ODC-0012"
     },
     {
       "id": "D4",
@@ -755,7 +755,7 @@
       ],
       "bucket": "package-declares-platform-binary-does-not-support",
       "actionable": true,
-      "ticket": "ODC-0103"
+      "ticket": "ODC-0013"
     },
     {
       "id": "D5",
@@ -768,7 +768,7 @@
       ],
       "bucket": "packaging-unhandled-resources-subsystem-unreachable",
       "actionable": true,
-      "ticket": "ODC-0103"
+      "ticket": "ODC-0014"
     },
     {
       "id": "D6",
@@ -780,7 +780,7 @@
       ],
       "bucket": "lockfile-manifest-disagreement",
       "actionable": true,
-      "ticket": "ODC-0103"
+      "ticket": "ODC-0002"
     },
     {
       "id": "D7",
@@ -793,7 +793,7 @@
       ],
       "bucket": "duplicate-divergent-runtime",
       "actionable": true,
-      "ticket": "ODC-0300"
+      "ticket": "ODC-0016"
     },
     {
       "id": "D8",
@@ -806,7 +806,7 @@
       ],
       "bucket": "runtime-progress-lifecycle",
       "actionable": true,
-      "ticket": "ODC-0101"
+      "ticket": "ODC-0015"
     }
   ],
   "duplicate_sources": {

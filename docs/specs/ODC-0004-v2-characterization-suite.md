@@ -2,7 +2,7 @@
 id: ODC-0004
 title: V2 characterization suite
 type: test
-status: SPEC_DRAFT
+status: REVISION
 milestone: P0
 owner: unassigned
 dependencies: ODC-0002

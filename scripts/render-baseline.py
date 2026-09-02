@@ -25,14 +25,14 @@ from pathlib import Path
 CAPTURE_DATE = os.environ.get("ODC_BASELINE_DATE", date.today().isoformat())
 
 FINDING_TICKETS = {
-    "D1": "ODC-0101",
-    "D2": "ODC-0202",
-    "D3": "ODC-0202",
-    "D4": "ODC-0103",
-    "D5": "ODC-0103",
-    "D6": "ODC-0103",
-    "D7": "ODC-0300",
-    "D8": "ODC-0101",
+    "D1": "ODC-0010",
+    "D2": "ODC-0011",
+    "D3": "ODC-0012",
+    "D4": "ODC-0013",
+    "D5": "ODC-0014",
+    "D6": "ODC-0002",
+    "D7": "ODC-0016",
+    "D8": "ODC-0015",
 }
 
 FINDING_BUCKETS = {

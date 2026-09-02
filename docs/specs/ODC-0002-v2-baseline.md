@@ -2,11 +2,11 @@
 id: ODC-0002
 title: Reproduce v2 build and dependency state
 type: baseline
-status: REVISION
+status: DONE
 milestone: P0
 owner: SankrityaT
 dependencies: ODC-0000
-founder_approved: pending
+founder_approved: delegated-to-manager-2026-09-01
 last_updated: 2026-09-01
 evidence_fresh_until: 2026-09-15
 unresolved_questions: none
@@ -449,7 +449,7 @@ characterizes.
 | D5 | 8 unhandled files; no `.metallib` is produced; `makeDefaultLibrary()` makes the whole Metal Engine unreachable in package form | E5 above; `Metal Engine/Compute/MetalComputeEngine.swift:89` |
 | D6 | `Package.resolved` at HEAD pins `mlx-swift-lm` to `branch: main`, which cannot satisfy the manifest's `exact: "2.29.3"` | E10 below; `Package.swift:30` |
 | D7 | `OnDeviceCatalyst/` is a divergent fork of the runtime, 12 of 22 shared files drifted, architecturally divergent | E7 above |
-| D8 | `handleInitializationError` calls `cleanup()`, which finishes and nils `loadingContinuation`, **before** `attemptFallbackInitialization` runs; every `publishProgress` on the fallback path is therefore a silent no-op and the consumer never learns whether fallback succeeded or failed | `Core Engine/LlamaInstance.swift:184-196` (`cleanup()` at `:187`, fallback dispatch at `:192`), `cleanup` `:237-248` (`:246-247`), `attemptFallbackInitialization` from `:198`, `publishProgress` `:580-586` |
+| D8 | `handleInitializationError` calls `cleanup()`, which finishes and nils `loadingContinuation`, **before** `attemptFallbackInitialization` runs; every `publishProgress` on the fallback path is therefore a silent no-op and the consumer never learns whether fallback succeeded or failed | `Core Engine/LlamaInstance.swift:184-196` (`cleanup()` at `:188`, fallback dispatch at `:192`), `cleanup` `:237-248` (`:246-247`), `attemptFallbackInitialization` from `:198`, `publishProgress` `:580-586` |
 
 D8 was not on the original defect list; it was found during independent
 verification and is recorded here so the baseline is complete at eight.

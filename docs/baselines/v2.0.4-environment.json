@@ -1,0 +1,1013 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-09-01",
+  "repo": {
+    "revision": "59da80bd7aef138bae1a7f75ea7e08a5ae117a99",
+    "describe": "59da80b",
+    "dirty": false
+  },
+  "toolchain": {
+    "swift": "Apple Swift version 6.3.3 (swiftlang-6.3.3.1.3 clang-2100.1.1.101)",
+    "swift_driver": "1.148.6",
+    "host_triple": "arm64-apple-macosx26.0",
+    "xcode_version": "26.6",
+    "xcode_build": "17F113",
+    "developer_dir_redacted": "<xcode-app>/Contents/Developer"
+  },
+  "host": {
+    "model_identifier": "Mac17,9",
+    "chip": "Apple M5 Pro",
+    "cores": 18,
+    "memory_bytes": 25769803776,
+    "os_product": "macOS",
+    "os_version": "26.4",
+    "os_build": "25E246"
+  },
+  "sdks": [
+    {
+      "name": "iOS",
+      "version": "26.5",
+      "canonical_name": "iphoneos26.5"
+    },
+    {
+      "name": "iOS Simulator",
+      "version": "26.5",
+      "canonical_name": "iphonesimulator26.5"
+    },
+    {
+      "name": "macOS",
+      "version": "26.5",
+      "canonical_name": "macosx26.5"
+    }
+  ],
+  "package": {
+    "name": "OnDeviceCatalyst",
+    "tools_version_declared": "5.12",
+    "tools_version_reported": "5.12.0",
+    "platforms": [
+      {
+        "name": "ios",
+        "version": "17.0"
+      },
+      {
+        "name": "macos",
+        "version": "14.0"
+      }
+    ],
+    "products": [
+      "OnDeviceCatalyst"
+    ],
+    "targets": [
+      {
+        "name": "OnDeviceCatalyst",
+        "type": "library",
+        "path": "Sources/OnDeviceCatalyst",
+        "source_count": 35,
+        "resources": []
+      },
+      {
+        "name": "OnDeviceCatalystTests",
+        "type": "test",
+        "path": "Tests/OnDeviceCatalystTests",
+        "source_count": 1,
+        "resources": []
+      },
+      {
+        "name": "llama",
+        "type": "binary",
+        "path": "remote/archive/llama.xcframework.zip",
+        "source_count": 0,
+        "resources": []
+      }
+    ]
+  },
+  "dependencies": [
+    {
+      "identity": "mlx-swift",
+      "requirement": "transitive, resolver determined",
+      "resolved_version": "0.29.1",
+      "resolved_revision": "072b684acaae80b6a463abab3a103732f33774bf",
+      "direct": false
+    },
+    {
+      "identity": "mlx-swift-lm",
+      "requirement": "exact 2.29.3",
+      "resolved_version": "2.29.3",
+      "resolved_revision": "5064b8c5d8ed3b0bbb71385c4124f0fc102e74a2",
+      "direct": true
+    },
+    {
+      "identity": "swift-asn1",
+      "requirement": "transitive, resolver determined",
+      "resolved_version": "1.5.1",
+      "resolved_revision": "810496cf121e525d660cd0ea89a758740476b85f",
+      "direct": false
+    },
+    {
+      "identity": "swift-collections",
+      "requirement": "transitive, resolver determined",
+      "resolved_version": "1.4.0",
+      "resolved_revision": "8d9834a6189db730f6264db7556a7ffb751e99ee",
+      "direct": false
+    },
+    {
+      "identity": "swift-crypto",
+      "requirement": "transitive, resolver determined",
+      "resolved_version": "4.2.0",
+      "resolved_revision": "6f70fa9eab24c1fd982af18c281c4525d05e3095",
+      "direct": false
+    },
+    {
+      "identity": "swift-jinja",
+      "requirement": "transitive, resolver determined",
+      "resolved_version": "2.3.2",
+      "resolved_revision": "f731f03bf746481d4fda07f817c3774390c4d5b9",
+      "direct": false
+    },
+    {
+      "identity": "swift-numerics",
+      "requirement": "transitive, resolver determined",
+      "resolved_version": "1.1.1",
+      "resolved_revision": "0c0290ff6b24942dadb83a929ffaaa1481df04a2",
+      "direct": false
+    },
+    {
+      "identity": "swift-transformers",
+      "requirement": "transitive, resolver determined",
+      "resolved_version": "1.1.9",
+      "resolved_revision": "150169bfba0889c229a2ce7494cf8949f18e6906",
+      "direct": false
+    },
+    {
+      "identity": "yyjson",
+      "requirement": "transitive, resolver determined",
+      "resolved_version": "0.12.0",
+      "resolved_revision": "8b4a38dc994a110abaec8a400615567bd996105f",
+      "direct": false
+    }
+  ],
+  "lockfile": {
+    "format_version_before": 2,
+    "format_version_after": 3,
+    "origin_hash_added": true,
+    "second_resolve_stable": true,
+    "raises_minimum_consumer_toolchain": false
+  },
+  "artifact": {
+    "url": "https://github.com/SankrityaT/OnDeviceCatalyst/releases/download/v2.0.4/llama.xcframework.zip",
+    "checksum": "741c3b584228c290c06bfbced9db161c3e7cb920c85d4d8df4ec54e8188a4e39",
+    "format_version": "1.0",
+    "slices": [
+      {
+        "identifier": "ios-arm64",
+        "platform": "ios",
+        "variant": null,
+        "architectures": [
+          "arm64"
+        ],
+        "bytes": 17151376,
+        "nm_line_count": 16870,
+        "defined_symbol_count": 16420,
+        "objects": [
+          "__.SYMDEF",
+          "arg.cpp.o",
+          "chat-auto-parser-generator.cpp.o",
+          "chat-auto-parser-helpers.cpp.o",
+          "chat-diff-analyzer.cpp.o",
+          "chat-peg-parser.cpp.o",
+          "chat.cpp.o",
+          "common.cpp.o",
+          "console.cpp.o",
+          "debug.cpp.o",
+          "download.cpp.o",
+          "json-partial.cpp.o",
+          "json-schema-to-grammar.cpp.o",
+          "llguidance.cpp.o",
+          "log.cpp.o",
+          "ngram-cache.cpp.o",
+          "ngram-map.cpp.o",
+          "ngram-mod.cpp.o",
+          "peg-parser.cpp.o",
+          "preset.cpp.o",
+          "regex-partial.cpp.o",
+          "sampling.cpp.o",
+          "speculative.cpp.o",
+          "unicode.cpp.o",
+          "lexer.cpp.o",
+          "parser.cpp.o",
+          "runtime.cpp.o",
+          "value.cpp.o",
+          "string.cpp.o",
+          "caps.cpp.o",
+          "license.cpp.o",
+          "build-info.cpp.o",
+          "ggml-metal.cpp.o",
+          "ggml-metal-device.m.o",
+          "ggml-metal-device.cpp.o",
+          "ggml-metal-common.cpp.o",
+          "ggml-metal-context.m.o",
+          "ggml-metal-ops.cpp.o",
+          "ggml-metal-embed.s.o",
+          "ggml.c.o",
+          "ggml.cpp.o",
+          "ggml-alloc.c.o",
+          "ggml-backend.cpp.o",
+          "ggml-opt.cpp.o",
+          "ggml-threading.cpp.o",
+          "ggml-quants.c.o",
+          "gguf.cpp.o",
+          "ggml-cpu.c.o",
+          "ggml-cpu.cpp.o",
+          "repack.cpp.o",
+          "hbm.cpp.o",
+          "quants.c.o",
+          "traits.cpp.o",
+          "amx.cpp.o",
+          "mmq.cpp.o",
+          "binary-ops.cpp.o",
+          "unary-ops.cpp.o",
+          "vec.cpp.o",
+          "ops.cpp.o",
+          "sgemm.cpp.o",
+          "quants.c.o",
+          "repack.cpp.o",
+          "ggml-backend-dl.cpp.o",
+          "ggml-backend-reg.cpp.o",
+          "llama.cpp.o",
+          "llama-adapter.cpp.o",
+          "llama-arch.cpp.o",
+          "llama-batch.cpp.o",
+          "llama-chat.cpp.o",
+          "llama-context.cpp.o",
+          "llama-cparams.cpp.o",
+          "llama-grammar.cpp.o",
+          "llama-graph.cpp.o",
+          "llama-hparams.cpp.o",
+          "llama-impl.cpp.o",
+          "llama-io.cpp.o",
+          "llama-kv-cache.cpp.o",
+          "llama-kv-cache-iswa.cpp.o",
+          "llama-memory.cpp.o",
+          "llama-memory-hybrid.cpp.o",
+          "llama-memory-hybrid-iswa.cpp.o",
+          "llama-memory-recurrent.cpp.o",
+          "llama-mmap.cpp.o",
+          "llama-model-loader.cpp.o",
+          "llama-model-saver.cpp.o",
+          "llama-model.cpp.o",
+          "llama-quant.cpp.o",
+          "llama-sampler.cpp.o",
+          "llama-vocab.cpp.o",
+          "unicode-data.cpp.o",
+          "unicode.cpp.o",
+          "afmoe.cpp.o",
+          "apertus.cpp.o",
+          "arcee.cpp.o",
+          "arctic.cpp.o",
+          "arwkv7.cpp.o",
+          "baichuan.cpp.o",
+          "bailingmoe.cpp.o",
+          "bailingmoe2.cpp.o",
+          "bert.cpp.o",
+          "bitnet.cpp.o",
+          "bloom.cpp.o",
+          "chameleon.cpp.o",
+          "chatglm.cpp.o",
+          "codeshell.cpp.o",
+          "cogvlm.cpp.o",
+          "cohere2-iswa.cpp.o",
+          "command-r.cpp.o",
+          "dbrx.cpp.o",
+          "deci.cpp.o",
+          "deepseek.cpp.o",
+          "deepseek2.cpp.o",
+          "delta-net-base.cpp.o",
+          "dots1.cpp.o",
+          "dream.cpp.o",
+          "ernie4-5-moe.cpp.o",
+          "ernie4-5.cpp.o",
+          "eurobert.cpp.o",
+          "exaone-moe.cpp.o",
+          "exaone.cpp.o",
+          "exaone4.cpp.o",
+          "falcon-h1.cpp.o",
+          "falcon.cpp.o",
+          "gemma-embedding.cpp.o",
+          "gemma.cpp.o",
+          "gemma2-iswa.cpp.o",
+          "gemma3.cpp.o",
+          "gemma3n-iswa.cpp.o",
+          "glm4-moe.cpp.o",
+          "glm4.cpp.o",
+          "gpt2.cpp.o",
+          "gptneox.cpp.o",
+          "granite-hybrid.cpp.o",
+          "granite.cpp.o",
+          "grok.cpp.o",
+          "grovemoe.cpp.o",
+          "hunyuan-dense.cpp.o",
+          "hunyuan-moe.cpp.o",
+          "internlm2.cpp.o",
+          "jais.cpp.o",
+          "jais2.cpp.o",
+          "jamba.cpp.o",
+          "kimi-linear.cpp.o",
+          "lfm2.cpp.o",
+          "llada-moe.cpp.o",
+          "llada.cpp.o",
+          "llama-iswa.cpp.o",
+          "llama.cpp.o",
+          "maincoder.cpp.o",
+          "mamba-base.cpp.o",
+          "mamba.cpp.o",
+          "mimo2-iswa.cpp.o",
+          "minicpm3.cpp.o",
+          "minimax-m2.cpp.o",
+          "mistral3.cpp.o",
+          "modern-bert.cpp.o",
+          "mpt.cpp.o",
+          "nemotron-h.cpp.o",
+          "nemotron.cpp.o",
+          "neo-bert.cpp.o",
+          "olmo.cpp.o",
+          "olmo2.cpp.o",
+          "olmoe.cpp.o",
+          "openai-moe-iswa.cpp.o",
+          "openelm.cpp.o",
+          "orion.cpp.o",
+          "paddleocr.cpp.o",
+          "pangu-embedded.cpp.o",
+          "phi2.cpp.o",
+          "phi3.cpp.o",
+          "plamo.cpp.o",
+          "plamo2.cpp.o",
+          "plamo3.cpp.o",
+          "plm.cpp.o",
+          "qwen.cpp.o",
+          "qwen2.cpp.o",
+          "qwen2moe.cpp.o",
+          "qwen2vl.cpp.o",
+          "qwen3.cpp.o",
+          "qwen35.cpp.o",
+          "qwen35moe.cpp.o",
+          "qwen3moe.cpp.o",
+          "qwen3next.cpp.o",
+          "qwen3vl-moe.cpp.o",
+          "qwen3vl.cpp.o",
+          "refact.cpp.o",
+          "rnd1.cpp.o",
+          "rwkv6-base.cpp.o",
+          "rwkv6.cpp.o",
+          "rwkv6qwen2.cpp.o",
+          "rwkv7-base.cpp.o",
+          "rwkv7.cpp.o",
+          "seed-oss.cpp.o",
+          "smallthinker.cpp.o",
+          "smollm3.cpp.o",
+          "stablelm.cpp.o",
+          "starcoder.cpp.o",
+          "starcoder2.cpp.o",
+          "step35-iswa.cpp.o",
+          "t5-dec.cpp.o",
+          "t5-enc.cpp.o",
+          "wavtokenizer-dec.cpp.o",
+          "xverse.cpp.o",
+          "mtmd.cpp.o",
+          "mtmd-audio.cpp.o",
+          "mtmd-helper.cpp.o",
+          "clip.cpp.o",
+          "cogvlm.cpp.o",
+          "conformer.cpp.o",
+          "glm4v.cpp.o",
+          "internvl.cpp.o",
+          "kimivl.cpp.o",
+          "kimik25.cpp.o",
+          "nemotron-v2-vl.cpp.o",
+          "llama4.cpp.o",
+          "llava.cpp.o",
+          "minicpmv.cpp.o",
+          "paddleocr.cpp.o",
+          "pixtral.cpp.o",
+          "qwen2vl.cpp.o",
+          "qwen3vl.cpp.o",
+          "siglip.cpp.o",
+          "whisper-enc.cpp.o",
+          "mobilenetv5.cpp.o",
+          "youtuvl.cpp.o",
+          "httplib.cpp.o"
+        ],
+        "is_stub": false,
+        "_command": "stat -f%z <slice>/libllama_combined.a; nm -gU <slice>/libllama_combined.a | wc -l; nm -gU <slice>/libllama_combined.a | grep -c '^[0-9a-f]\\{8,\\} [A-Za-z] '; ar -t <slice>/libllama_combined.a"
+      },
+      {
+        "identifier": "ios-arm64-simulator",
+        "platform": "ios",
+        "variant": "simulator",
+        "architectures": [
+          "arm64"
+        ],
+        "bytes": 7936,
+        "nm_line_count": 55,
+        "defined_symbol_count": 51,
+        "objects": [
+          "__.SYMDEF SORTED",
+          "llama_stub.o",
+          "llama_sim_stubs.o"
+        ],
+        "is_stub": true,
+        "_command": "stat -f%z <slice>/libllama_combined.a; nm -gU <slice>/libllama_combined.a | wc -l; nm -gU <slice>/libllama_combined.a | grep -c '^[0-9a-f]\\{8,\\} [A-Za-z] '; ar -t <slice>/libllama_combined.a"
+      }
+    ]
+  },
+  "build_matrix": [
+    {
+      "cell": "ios-device",
+      "system": "swiftpm",
+      "triple": "arm64-apple-ios17.0",
+      "sdk": "iphoneos",
+      "command": "swift build --sdk \"$(xcrun --sdk iphoneos --show-sdk-path)\" --triple arm64-apple-ios17.0 -c debug",
+      "exit_code": 0,
+      "result": "compiles",
+      "cache_state": "cold",
+      "cache_dependent": true,
+      "warning_count": 25,
+      "first_root_failure": null
+    },
+    {
+      "cell": "ios-device",
+      "system": "swiftpm",
+      "triple": "arm64-apple-ios17.0",
+      "sdk": "iphoneos",
+      "command": "swift build --sdk \"$(xcrun --sdk iphoneos --show-sdk-path)\" --triple arm64-apple-ios17.0 -c debug",
+      "exit_code": 0,
+      "result": "compiles",
+      "cache_state": "warm",
+      "cache_dependent": true,
+      "warning_count": 8,
+      "first_root_failure": null
+    },
+    {
+      "cell": "ios-simulator",
+      "system": "swiftpm",
+      "triple": "arm64-apple-ios17.0-simulator",
+      "sdk": "iphonesimulator",
+      "command": "swift build --sdk \"$(xcrun --sdk iphonesimulator --show-sdk-path)\" --triple arm64-apple-ios17.0-simulator -c debug",
+      "exit_code": 0,
+      "result": "links, cannot infer",
+      "cache_state": "cold",
+      "cache_dependent": true,
+      "warning_count": 25,
+      "first_root_failure": null
+    },
+    {
+      "cell": "ios-simulator",
+      "system": "swiftpm",
+      "triple": "arm64-apple-ios17.0-simulator",
+      "sdk": "iphonesimulator",
+      "command": "swift build --sdk \"$(xcrun --sdk iphonesimulator --show-sdk-path)\" --triple arm64-apple-ios17.0-simulator -c debug",
+      "exit_code": 0,
+      "result": "links, cannot infer",
+      "cache_state": "warm",
+      "cache_dependent": true,
+      "warning_count": 8,
+      "first_root_failure": null
+    },
+    {
+      "cell": "macos",
+      "system": "swiftpm",
+      "triple": null,
+      "sdk": "macosx",
+      "command": "swift build -c debug",
+      "exit_code": 1,
+      "result": "fails",
+      "cache_state": "cold",
+      "cache_dependent": false,
+      "warning_count": 8,
+      "first_root_failure": "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift:12:8: error: no such module 'llama'"
+    },
+    {
+      "cell": "macos",
+      "system": "swiftpm",
+      "triple": null,
+      "sdk": "macosx",
+      "command": "swift build -c debug",
+      "exit_code": 1,
+      "result": "fails",
+      "cache_state": "warm",
+      "cache_dependent": false,
+      "warning_count": 8,
+      "first_root_failure": "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift:12:8: error: no such module 'llama'"
+    },
+    {
+      "cell": "macos-test",
+      "system": "swiftpm",
+      "triple": null,
+      "sdk": "macosx",
+      "command": "swift test",
+      "exit_code": 1,
+      "result": "blocked-by-build",
+      "cache_state": "cold",
+      "cache_dependent": false,
+      "warning_count": 8,
+      "first_root_failure": "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift:12:8: error: no such module 'llama'"
+    },
+    {
+      "cell": "macos-test",
+      "system": "swiftpm",
+      "triple": null,
+      "sdk": "macosx",
+      "command": "swift test",
+      "exit_code": 1,
+      "result": "blocked-by-build",
+      "cache_state": "warm",
+      "cache_dependent": false,
+      "warning_count": 8,
+      "first_root_failure": "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift:12:8: error: no such module 'llama'"
+    },
+    {
+      "cell": "xcodeproj",
+      "system": "xcodebuild",
+      "triple": null,
+      "sdk": "iphonesimulator",
+      "command": "xcodebuild -project OnDeviceCatalyst.xcodeproj -scheme OnDeviceCatalyst -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build",
+      "exit_code": 65,
+      "result": "fails",
+      "cache_state": "cold",
+      "cache_dependent": false,
+      "warning_count": 0,
+      "first_root_failure": "error: There is no XCFramework found at '<repo>/OnDeviceCatalyst/llama.xcframework' (in target 'OnDeviceCatalyst' from project 'OnDeviceCatalyst')"
+    },
+    {
+      "cell": "xcodeproj",
+      "system": "xcodebuild",
+      "triple": null,
+      "sdk": "iphonesimulator",
+      "command": "xcodebuild -project OnDeviceCatalyst.xcodeproj -scheme OnDeviceCatalyst -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build",
+      "exit_code": 65,
+      "result": "fails",
+      "cache_state": "warm",
+      "cache_dependent": false,
+      "warning_count": 0,
+      "first_root_failure": "error: There is no XCFramework found at '<repo>/OnDeviceCatalyst/llama.xcframework' (in target 'OnDeviceCatalyst' from project 'OnDeviceCatalyst')"
+    }
+  ],
+  "warnings": [
+    {
+      "group": "concurrency-lifecycle",
+      "file": "Sources/OnDeviceCatalyst/Service Layer/Catalyst.swift",
+      "line": 421,
+      "text": "result of call to 'sync(flags:execute:)' is unused [#no-usage]"
+    },
+    {
+      "group": "concurrency-lifecycle",
+      "file": "Sources/OnDeviceCatalyst/Service Layer/Catalyst.swift",
+      "line": 496,
+      "text": "no 'async' operations occur within 'await' expression"
+    },
+    {
+      "group": "cosmetic-packaging",
+      "file": "Sources/OnDeviceCatalyst/Assets.xcassets",
+      "line": null,
+      "text": "unhandled file; explicitly declare as a resource or exclude from the target"
+    },
+    {
+      "group": "deprecated-llama-api",
+      "file": "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift",
+      "line": 56,
+      "text": "'llama_load_model_from_file' is deprecated: use llama_model_load_from_file instead [#DeprecatedDeclaration]"
+    },
+    {
+      "group": "deprecated-llama-api",
+      "file": "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift",
+      "line": 140,
+      "text": "'llama_free_model' is deprecated: use llama_model_free instead [#DeprecatedDeclaration]"
+    },
+    {
+      "group": "deprecated-llama-api",
+      "file": "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift",
+      "line": 158,
+      "text": "'llama_new_context_with_model' is deprecated: use llama_init_from_model instead [#DeprecatedDeclaration]"
+    },
+    {
+      "group": "deprecated-llama-api",
+      "file": "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift",
+      "line": 194,
+      "text": "'llama_n_vocab' is deprecated: use llama_vocab_n_tokens instead [#DeprecatedDeclaration]"
+    },
+    {
+      "group": "deprecated-llama-api",
+      "file": "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift",
+      "line": 200,
+      "text": "'llama_token_bos' is deprecated: use llama_vocab_bos instead [#DeprecatedDeclaration]"
+    },
+    {
+      "group": "deprecated-llama-api",
+      "file": "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift",
+      "line": 205,
+      "text": "'llama_token_eos' is deprecated: use llama_vocab_eos instead [#DeprecatedDeclaration]"
+    },
+    {
+      "group": "deprecated-llama-api",
+      "file": "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift",
+      "line": 210,
+      "text": "'llama_n_embd' is deprecated: use llama_model_n_embd instead [#DeprecatedDeclaration]"
+    },
+    {
+      "group": "deprecated-llama-api",
+      "file": "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift",
+      "line": 216,
+      "text": "'llama_token_eos' is deprecated: use llama_vocab_eos instead [#DeprecatedDeclaration]"
+    },
+    {
+      "group": "deprecated-llama-api",
+      "file": "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift",
+      "line": 216,
+      "text": "'llama_token_is_eog' is deprecated: use llama_vocab_is_eog instead [#DeprecatedDeclaration]"
+    },
+    {
+      "group": "non-functional-subsystem",
+      "file": "Sources/OnDeviceCatalyst/Metal Engine/Shaders/activations.metal",
+      "line": null,
+      "text": "unhandled .metal source; no default.metallib is produced, so MetalComputeEngine.swift:89 makeDefaultLibrary() returns nil"
+    },
+    {
+      "group": "non-functional-subsystem",
+      "file": "Sources/OnDeviceCatalyst/Metal Engine/Shaders/attention.metal",
+      "line": null,
+      "text": "unhandled .metal source; no default.metallib is produced, so MetalComputeEngine.swift:89 makeDefaultLibrary() returns nil"
+    },
+    {
+      "group": "non-functional-subsystem",
+      "file": "Sources/OnDeviceCatalyst/Metal Engine/Shaders/embedding.metal",
+      "line": null,
+      "text": "unhandled .metal source; no default.metallib is produced, so MetalComputeEngine.swift:89 makeDefaultLibrary() returns nil"
+    },
+    {
+      "group": "non-functional-subsystem",
+      "file": "Sources/OnDeviceCatalyst/Metal Engine/Shaders/matmul.metal",
+      "line": null,
+      "text": "unhandled .metal source; no default.metallib is produced, so MetalComputeEngine.swift:89 makeDefaultLibrary() returns nil"
+    },
+    {
+      "group": "non-functional-subsystem",
+      "file": "Sources/OnDeviceCatalyst/Metal Engine/Shaders/matvec.metal",
+      "line": null,
+      "text": "unhandled .metal source; no default.metallib is produced, so MetalComputeEngine.swift:89 makeDefaultLibrary() returns nil"
+    },
+    {
+      "group": "non-functional-subsystem",
+      "file": "Sources/OnDeviceCatalyst/Metal Engine/Shaders/rms_norm.metal",
+      "line": null,
+      "text": "unhandled .metal source; no default.metallib is produced, so MetalComputeEngine.swift:89 makeDefaultLibrary() returns nil"
+    },
+    {
+      "group": "non-functional-subsystem",
+      "file": "Sources/OnDeviceCatalyst/Metal Engine/Shaders/rope.metal",
+      "line": null,
+      "text": "unhandled .metal source; no default.metallib is produced, so MetalComputeEngine.swift:89 makeDefaultLibrary() returns nil"
+    },
+    {
+      "group": "unused-code",
+      "file": "Sources/OnDeviceCatalyst/Backend/MLXInstance.swift",
+      "line": 220,
+      "text": "variable 'promptTokens' was written to, but never read"
+    },
+    {
+      "group": "unused-code",
+      "file": "Sources/OnDeviceCatalyst/Core Foundation/ConfigurationPresets.swift",
+      "line": 110,
+      "text": "variable 'settings' was never mutated; consider changing to 'let' constant"
+    },
+    {
+      "group": "unused-code",
+      "file": "Sources/OnDeviceCatalyst/Core Foundation/ModelProfile.swift",
+      "line": 78,
+      "text": "immutable value 'error' was never used; consider replacing with '_' or removing it [#no-usage]"
+    },
+    {
+      "group": "unused-code",
+      "file": "Sources/OnDeviceCatalyst/Metal Engine/GGUF/GGUFTokenizer.swift",
+      "line": 191,
+      "text": "variable 'bestPos' was written to, but never read"
+    },
+    {
+      "group": "unused-code",
+      "file": "Sources/OnDeviceCatalyst/Metal Engine/Model/ModelWeights.swift",
+      "line": 87,
+      "text": "initialization of immutable value 'tensorPtr' was never used; consider replacing with assignment to '_' or removing it [#no-usage]"
+    },
+    {
+      "group": "unused-code",
+      "file": "Sources/OnDeviceCatalyst/Service Layer/Catalyst.swift",
+      "line": 291,
+      "text": "variable 'completionMetadata' was written to, but never read"
+    }
+  ],
+  "findings": [
+    {
+      "id": "D1",
+      "summary": "releaseInstance caches a ready instance and asynchronously shuts it down, with no happens-before between the cache insert and cleanup(); the only cache reader does not re-check isReady",
+      "evidence": [
+        "Sources/OnDeviceCatalyst/Service Layer/Catalyst.swift:495-522 (cache insert :507, Task { await instance.shutdown() } :510-512)",
+        "Sources/OnDeviceCatalyst/Service Layer/CacheSettings.swift:111-138 (separate concurrent queue)",
+        "Sources/OnDeviceCatalyst/Service Layer/Catalyst.swift:99-108 (the only cache reader, no isReady re-check)",
+        "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:18 (plain class, not an actor)",
+        "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:65 (isReady is backend != nil && samplingEngine != nil)",
+        "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:237-248 (cleanup nils backend)",
+        "Corroborating diagnostic: Service Layer/Catalyst.swift:496:9 warning: no 'async' operations occur within 'await' expression"
+      ],
+      "bucket": "runtime-concurrency-lifecycle",
+      "actionable": true,
+      "ticket": "ODC-0101"
+    },
+    {
+      "id": "D2",
+      "summary": "performGeneration appends a second, always-.natural completion chunk after generateTokens has already emitted one for its actual termination reason, so every generation emits two completions",
+      "evidence": [
+        "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:443 (generateTokens), emit points :466, :487, :500-506, :517, :535",
+        "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:283 (performGeneration), :365 call, :384 second completion, :386 finish",
+        "In-repo consumer that breaks on the first completion: Sources/OnDeviceCatalyst/Service Layer/Catalyst.swift:468"
+      ],
+      "bucket": "runtime-stream-protocol",
+      "actionable": true,
+      "ticket": "ODC-0202"
+    },
+    {
+      "id": "D3",
+      "summary": "publishProgress gates on a compound AND over one value (if case .ready = progress, case .failed = progress), which is unsatisfiable; the continuation is never finished on success",
+      "evidence": [
+        "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:580-586 (publishProgress)",
+        "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:123 (success path publishes .ready and returns)",
+        "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:246-247 (only cleanup ever finishes the continuation)"
+      ],
+      "bucket": "runtime-stream-protocol",
+      "actionable": true,
+      "ticket": "ODC-0202"
+    },
+    {
+      "id": "D4",
+      "summary": ".macOS(.v14) is declared with no macOS slice in the XCFramework; swift build and swift test both fail with no such module 'llama'",
+      "evidence": [
+        "Package.swift:21 declares .macOS(.v14)",
+        "llama.xcframework Info.plist lists exactly two AvailableLibraries entries, ios-arm64 and ios-arm64-simulator, and no macos entry",
+        "Sources/OnDeviceCatalyst/API Bridge/LlamaBridge.swift:12:8: error: no such module 'llama' (swift build -c debug, exit 1)",
+        "swift test fails at the identical path:line for the identical root cause (exit 1)"
+      ],
+      "bucket": "package-declares-platform-binary-does-not-support",
+      "actionable": true,
+      "ticket": "ODC-0103"
+    },
+    {
+      "id": "D5",
+      "summary": "8 unhandled files; no .metallib is produced; makeDefaultLibrary() makes the whole Metal Engine unreachable in package form",
+      "evidence": [
+        "warning: found 8 file(s) which are unhandled; explicitly declare them as resources or exclude from the target",
+        "Seven .metal files under Sources/OnDeviceCatalyst/Metal Engine/Shaders/ plus Sources/OnDeviceCatalyst/Assets.xcassets",
+        "swift package describe --type json shows the OnDeviceCatalyst target declares no resources entry",
+        "Sources/OnDeviceCatalyst/Metal Engine/Compute/MetalComputeEngine.swift:89 calls device.makeDefaultLibrary() and throws when it returns nil"
+      ],
+      "bucket": "packaging-unhandled-resources-subsystem-unreachable",
+      "actionable": true,
+      "ticket": "ODC-0103"
+    },
+    {
+      "id": "D6",
+      "summary": "Package.resolved at the pinned revision pins mlx-swift-lm to branch: main, which cannot satisfy the manifest's exact 2.29.3 requirement, so every resolving command rewrites the lockfile",
+      "evidence": [
+        "Package.swift:30 requires .package(url: .../mlx-swift-lm/, exact: \"2.29.3\")",
+        "Package.resolved at the pinned revision pins mlx-swift-lm to { branch: main, revision: 6bb84aac13f76ca5e2c3ff312bc072977e684ff4 } in format version 2 with no originHash",
+        "swift package resolve rewrites the lockfile to format version 3, adds originHash, and repins mlx-swift-lm to 2.29.3 and mlx-swift to 0.29.1"
+      ],
+      "bucket": "lockfile-manifest-disagreement",
+      "actionable": true,
+      "ticket": "ODC-0103"
+    },
+    {
+      "id": "D7",
+      "summary": "OnDeviceCatalyst/ is a divergent fork of the runtime; the app target consumes no package reference and 12 of 22 shared files have drifted",
+      "evidence": [
+        "OnDeviceCatalyst.xcodeproj/project.pbxproj contains zero XCRemoteSwiftPackageReference entries",
+        "22 same-named Swift files exist under both roots; 12 differ and 10 are identical",
+        "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:25-27 holds internal var backend: InferenceBackend?",
+        "OnDeviceCatalyst/Core Engine/LlamaInstance.swift:26-29 still holds raw cModel / cContext / cBatch OpaquePointer state"
+      ],
+      "bucket": "duplicate-divergent-runtime",
+      "actionable": true,
+      "ticket": "ODC-0300"
+    },
+    {
+      "id": "D8",
+      "summary": "handleInitializationError calls cleanup(), which finishes and nils loadingContinuation, before attemptFallbackInitialization runs, so every publishProgress on the fallback path is a silent no-op",
+      "evidence": [
+        "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:184-196 (handleInitializationError), cleanup() at :188, fallback dispatch at :192",
+        "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:237-248 (cleanup), :246-247 finish and nil the continuation",
+        "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:198 (attemptFallbackInitialization)",
+        "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:580-586 (publishProgress is a no-op once the continuation is nil)"
+      ],
+      "bucket": "runtime-progress-lifecycle",
+      "actionable": true,
+      "ticket": "ODC-0101"
+    }
+  ],
+  "duplicate_sources": {
+    "package_root": "Sources/OnDeviceCatalyst",
+    "app_root": "OnDeviceCatalyst",
+    "app_consumes_package": false,
+    "shared": [
+      {
+        "path": "Core Engine/LlamaInstance.swift",
+        "identical": false,
+        "changed_lines": 591,
+        "package_sha256": "8d2ed024dffffeca64f1b056c7bcb38b4e847640f298aaab20329828758b0863",
+        "app_sha256": "debea34dc3c6157c695b2332a8357c369535c1cb27e38961d2c2ce0a17784423"
+      },
+      {
+        "path": "Service Layer/Catalyst.swift",
+        "identical": false,
+        "changed_lines": 218,
+        "package_sha256": "754b6b65c527cf0913e400caefe38c6d847ceac793a5238551d3e1a52523b2d3",
+        "app_sha256": "e4ebe345939ed4afb759717ad73d01d792592f6117b6e8eebc538cc1a5a1c2a7"
+      },
+      {
+        "path": "API Bridge/LlamaBridge.swift",
+        "identical": false,
+        "changed_lines": 104,
+        "package_sha256": "0f225c109e3c370456de20fecc99b16a9c880cc0d2350539e6e6227b54294e67",
+        "app_sha256": "b73997ff54607321022171d45af2b64125e31bdbecf74bde83b550dcafbc6d23"
+      },
+      {
+        "path": "Core Foundation/InstanceSettings.swift",
+        "identical": false,
+        "changed_lines": 47,
+        "package_sha256": "eaedeacf72df5b495c5154e0db1dea288b280886f9713a38c5d52b9730677adb",
+        "app_sha256": "a47fede4489f86461b8db8f83b4e8458bc617a264468058cb92838092ae51be0"
+      },
+      {
+        "path": "Chat System/StreamResponse.swift",
+        "identical": false,
+        "changed_lines": 37,
+        "package_sha256": "232fcf78b7e243ff283e21b19a311a6b77e7c0c9af003ab9ebac30cfee9f8c63",
+        "app_sha256": "8f4ee8d3be0224fced238995cc8258e6a329e20d554e865cf55f87d3035e574a"
+      },
+      {
+        "path": "Core Engine/SamplingEngine.swift",
+        "identical": false,
+        "changed_lines": 35,
+        "package_sha256": "f61988ca43d97e49688f742c48917d19565de0e5aa563cddd37eedb8f01d4bf5",
+        "app_sha256": "1dd2bc22d75b9e9ba720c76f63609edde5a26cd3d7e0d97a358c4338f327858a"
+      },
+      {
+        "path": "Core Engine/PromptFormatting.swift",
+        "identical": false,
+        "changed_lines": 18,
+        "package_sha256": "82d7a715d1324fda3d289c38037dc9f39a3d8fc643c1a5c8313812c8f1212d9f",
+        "app_sha256": "8e6e2ef93e0b3d6aa766c5d866026b7e8e6ad072ecac25c45f12773036fa3788"
+      },
+      {
+        "path": "Core Foundation/DeviceOptimizer.swift",
+        "identical": false,
+        "changed_lines": 18,
+        "package_sha256": "b6ddaa80c0a31cd4dfc078adde8b2d2727f009453605ee61249730aea4853135",
+        "app_sha256": "ba49ae65d2018bb02be2c6931603851aeee6f5a28cb967a4a4c28e5c13492111"
+      },
+      {
+        "path": "Core Foundation/ModelProfile.swift",
+        "identical": false,
+        "changed_lines": 16,
+        "package_sha256": "5dd9ae489ae0e077f30fc32a9514eda2a76ff98f6e69f1c4427c8b5cdac7e9ba",
+        "app_sha256": "f17e40a51221008e6ed64ccfed0910af23b60c6778696613420676b6520d7a9c"
+      },
+      {
+        "path": "Core Foundation/ModelArchitecture.swift",
+        "identical": false,
+        "changed_lines": 11,
+        "package_sha256": "8c1827168117bbb0fe8c41bbe1f108b4977279b04182f91aed39f73977506394",
+        "app_sha256": "909c84fd2ed5ab1a691fa95b1316f54ed3fa7282a3cba33173c153608ae6375f"
+      },
+      {
+        "path": "Chat System/StopSequenceHandler.swift",
+        "identical": false,
+        "changed_lines": 4,
+        "package_sha256": "e96e1eaf6901be4b206d525ad2375827b150cd31189b4d73173c70e0a807ce08",
+        "app_sha256": "3305f32abf41f78fd3e86e923467c7da5275c8cb6ad5440eecc7396613a21267"
+      },
+      {
+        "path": "Core Foundation/PredictionConfig.swift",
+        "identical": false,
+        "changed_lines": 2,
+        "package_sha256": "ae86e76515eb665bef23c8d3d1fd0c8dbc953ce713aa9cb7d9fba2ea6fb2749b",
+        "app_sha256": "d063dfdeb41ea0e1d65846a7125885e39638cb074e74ef3188042f80cb2533fa"
+      },
+      {
+        "path": "Chat System/DialogueTypes.swift",
+        "identical": true,
+        "changed_lines": 0,
+        "package_sha256": "ea08fa8e3d6725aa5abab06d0bdad8d33d00d0ccb2b12c6190bf01b7dcff93fd",
+        "app_sha256": "ea08fa8e3d6725aa5abab06d0bdad8d33d00d0ccb2b12c6190bf01b7dcff93fd"
+      },
+      {
+        "path": "Core Engine/LlamaSamplerChain.swift",
+        "identical": true,
+        "changed_lines": 0,
+        "package_sha256": "649588c216627f64e71ca2987239a3d246e04bc2059cf553389f6549ae88007c",
+        "app_sha256": "649588c216627f64e71ca2987239a3d246e04bc2059cf553389f6549ae88007c"
+      },
+      {
+        "path": "Core Engine/StatePersistence.swift",
+        "identical": true,
+        "changed_lines": 0,
+        "package_sha256": "6de894a6a1939a8b1c2fbf6fb9fe8402e88bd537e120569799f749c691350a88",
+        "app_sha256": "6de894a6a1939a8b1c2fbf6fb9fe8402e88bd537e120569799f749c691350a88"
+      },
+      {
+        "path": "Core Foundation/CatalystError.swift",
+        "identical": true,
+        "changed_lines": 0,
+        "package_sha256": "a1af3150204f1f00a29a5b83c6b89866bdd2fa4669aa63b425eef95149e53e5c",
+        "app_sha256": "a1af3150204f1f00a29a5b83c6b89866bdd2fa4669aa63b425eef95149e53e5c"
+      },
+      {
+        "path": "Core Foundation/CompletionReason.swift",
+        "identical": true,
+        "changed_lines": 0,
+        "package_sha256": "097f4eb2f2f23ab28d2f5d9296b25f3c2c68cfc42583ae08e70511f9a9efc3a6",
+        "app_sha256": "097f4eb2f2f23ab28d2f5d9296b25f3c2c68cfc42583ae08e70511f9a9efc3a6"
+      },
+      {
+        "path": "Core Foundation/ConfigurationPresets.swift",
+        "identical": true,
+        "changed_lines": 0,
+        "package_sha256": "39fd93cf57ac06e7ac09dad202e2205ffc1f564cf2a17513f7970e5b6b004cab",
+        "app_sha256": "39fd93cf57ac06e7ac09dad202e2205ffc1f564cf2a17513f7970e5b6b004cab"
+      },
+      {
+        "path": "Core Foundation/PerformanceMonitor.swift",
+        "identical": true,
+        "changed_lines": 0,
+        "package_sha256": "f120f792f231d3aeb5228b2a2ac2f5e68c099610305fb23cc852db27d0d60193",
+        "app_sha256": "f120f792f231d3aeb5228b2a2ac2f5e68c099610305fb23cc852db27d0d60193"
+      },
+      {
+        "path": "Core Foundation/SafetyManager.swift",
+        "identical": true,
+        "changed_lines": 0,
+        "package_sha256": "0e491f5570873b8674e06ef18af583c7a591b44ec7a3970a2c927a7fa7c4edec",
+        "app_sha256": "0e491f5570873b8674e06ef18af583c7a591b44ec7a3970a2c927a7fa7c4edec"
+      },
+      {
+        "path": "Core Foundation/SimulatorSupport.swift",
+        "identical": true,
+        "changed_lines": 0,
+        "package_sha256": "29e618423d3abe0749c71f3155b7beb54bc101f5b6bd62fa3e0a3b64e338ea88",
+        "app_sha256": "29e618423d3abe0749c71f3155b7beb54bc101f5b6bd62fa3e0a3b64e338ea88"
+      },
+      {
+        "path": "Service Layer/CacheSettings.swift",
+        "identical": true,
+        "changed_lines": 0,
+        "package_sha256": "aea243a50b5289e0cbf000b717106a0f45bb321318a6973b7ba0abda9472dcbf",
+        "app_sha256": "aea243a50b5289e0cbf000b717106a0f45bb321318a6973b7ba0abda9472dcbf"
+      }
+    ],
+    "package_only": [
+      "Backend/InferenceBackend.swift",
+      "Backend/LlamaCppBackend.swift",
+      "Backend/MLXInstance.swift",
+      "Metal Engine/Compute/MetalComputeEngine.swift",
+      "Metal Engine/GGUF/GGUFParser.swift",
+      "Metal Engine/GGUF/GGUFTokenizer.swift",
+      "Metal Engine/GGUF/GGUFTypes.swift",
+      "Metal Engine/MetalBackend.swift",
+      "Metal Engine/Model/KVCache.swift",
+      "Metal Engine/Model/ModelWeights.swift",
+      "Metal Engine/Model/TransformerGraph.swift",
+      "Service Layer/ModelDownloader.swift",
+      "Tools/ToolSupport.swift"
+    ],
+    "app_only": [
+      "ContentView.swift",
+      "OnDeviceCatalystApp.swift",
+      "Qwen3TestView.swift"
+    ],
+    "_command": "diff \"Sources/OnDeviceCatalyst/$f\" \"OnDeviceCatalyst/$f\" | grep -c '^[<>]'"
+  },
+  "tests": {
+    "target_path": "Tests/OnDeviceCatalystTests",
+    "compiled_test_sources": [
+      "Tests/OnDeviceCatalystTests/OnDeviceCatalystTests.swift"
+    ],
+    "test_case_names": [
+      "testCatalystServiceInitialization",
+      "testInstanceSettingsValidation",
+      "testModelProfileCreation",
+      "testPredictionConfigPresets"
+    ],
+    "orphaned_test_files": [
+      "Tests/BERTEmbeddingTest.swift",
+      "Tests/EmbeddingTest.swift",
+      "Tests/test_embedding.swift"
+    ],
+    "runnable_on_host": false,
+    "defect_coverage_count": 0
+  }
+}

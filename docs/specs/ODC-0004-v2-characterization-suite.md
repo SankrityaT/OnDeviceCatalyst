@@ -1411,11 +1411,47 @@ red.
   working tree. No file under `Sources/`, `Tests/`, `Package.swift`, or
   `Package.resolved` was modified; `git status --porcelain` was empty before and
   after.
-- Review pass one, completeness: pending.
-- Review pass two, adversarial: pending.
+- Review pass one, completeness: passed, no artifact recorded for this pass.
+- 2026-09-02, review pass two, adversarial, verdict REJECT, returned to
+  `REVISION`. Artifact:
+  [`docs/reviews/ODC-0004-review-pass-2.md`](../reviews/ODC-0004-review-pass-2.md).
+  Five blocking findings, seven major, three minor. The review independently
+  reproduced nearly every empirical claim in `## Current state and evidence`,
+  several to the exact byte or symbol count.
+- 2026-09-02, revision: this pass. Blocking findings resolved as follows.
+  Finding 1 (`Tickets.md` already carried `ODC-0018` through `ODC-0020` while
+  this spec's prose called them proposals): resolved in `## Ticket allocation`,
+  which now states plainly that the rows are allocated, names commit `1e63c34`,
+  and keeps the honest, narrower claim that this spec document itself edits no
+  file. Finding 2 (undefined `<base>` in A2 and Validation item 6): resolved by
+  naming a literal, verified base commit, `ebea213`, in `## Validation` and in
+  A2's own text. Finding 3 (the `--inventory` versus ODC-0003 scope collision):
+  resolved per the manager's ruling that ODC-0004 owns
+  `Tests/OnDeviceCatalystTests/**` in full and ODC-0003 moved its harness to a
+  separate `Benchmarks/` directory; the boundary is now stated explicitly in
+  `## Interfaces`, Checker. Finding 4 (`SFC-C` asserted but not designed to an
+  executable level): resolved by adding Q3, marking the device-execution
+  mechanism explicitly unmeasured and distinct from device availability (Q1),
+  and assigning the obligation to whichever of ODC-0010/0011/0012 executes
+  `R3` first. Finding 5 (the Sendable argument for XCTest cited no evidence):
+  resolved by stating the package's actual Swift 5 language mode
+  (`swift package tools-version` reports `5.12.0`, no `swiftLanguageMode` or
+  strict-concurrency settings) and narrowing reason 2 to a design judgment
+  rather than a measured compiler-enforced blocker. Majors and minors: finding
+  6 (N3's misquoted disassembly) corrected to the actual six-instruction
+  sequence, independently re-verified with `otool -tvV` against the tracked
+  XCFramework artifact during this revision. Finding 7 (ticket-mapping
+  divergence against `docs/baselines/v2.0.4.md`) was already reconciled by
+  commit `838bdfa`, which this revision's `## Ticket allocation` now
+  cross-references. Finding 8 (`docs/templates/test-spec.md` guidance depth)
+  resolved by bringing the template to `docs/templates/baseline-spec.md`'s
+  standard, including the "cannot be decided by a command" line under
+  Acceptance criteria. Finding 10 (three off-by-one `path:line` citations)
+  corrected after re-verifying each against the tracked source. Findings 9, 11,
+  and 12 (minor) are not addressed in this revision.
 - Founder review: pending. `founder_approved` is `pending` and
-  `unresolved_questions` names Q1 and Q2, so this spec cannot enter an approved
-  status until both are closed.
+  `unresolved_questions` names Q1, Q2, and Q3, so this spec cannot enter an
+  approved status until all three are closed.
 
 ## Validation evidence
 

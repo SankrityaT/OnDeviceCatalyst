@@ -7,9 +7,9 @@ milestone: P0
 owner: unassigned
 dependencies: ODC-0002
 founder_approved: pending
-last_updated: 2026-09-01
+last_updated: 2026-09-02
 evidence_fresh_until: 2026-09-15
-unresolved_questions: Q1 physical-device surface availability, Q2 Metal reachability under Xcode-built consumers
+unresolved_questions: Q1 physical-device surface availability, Q2 Metal reachability under Xcode-built consumers, Q3 device-execution mechanism (signing, provisioning, deployment) unspecified
 ---
 
 # ODC-0004: V2 characterization suite
@@ -212,10 +212,32 @@ newer 'iOS-simulator' version (26.2) than being linked (17.0)
 
 `ar -t` on the simulator slice lists `llama_stub.o` (defines nothing) and
 `llama_sim_stubs.o` (defines all 51). Disassembly with `otool -tvV` shows
-`_llama_backend_init` is a bare `ret`, `_llama_load_model_from_file` is
-`mov x0, #0x0; ret`, `_llama_new_context_with_model` likewise returns null, and
-`_llama_n_ctx` returns zero. A scan for `brk`, `udf`, `_abort`, `_exit`, and
-`trap` across both objects returns **zero** matches.
+`_llama_backend_init` is a bare `ret`:
+
+```
+_llama_backend_init:
+    ret
+```
+
+`_llama_load_model_from_file` returns null unconditionally, but not via the
+two-instruction sequence an earlier draft of this section quoted. The actual
+disassembly is six instructions, a stack frame set up and torn down around the
+null return:
+
+```
+_llama_load_model_from_file:
+    sub sp, sp, #0x10
+    str x0, [sp, #0x8]
+    str x1, [sp]
+    mov x0, #0x0
+    add sp, sp, #0x10
+    ret
+```
+
+The functional conclusion is unchanged by the correction: the return is
+unconditional and there is no trap. `_llama_new_context_with_model` likewise
+returns null, and `_llama_n_ctx` returns zero. A scan for `brk`, `udf`,
+`_abort`, `_exit`, and `trap` across both objects returns **zero** matches.
 
 Consequence, and it is the single most useful fact in this spec: on the iOS
 Simulator, `LlamaBridge.loadModel` (`API Bridge/LlamaBridge.swift:55-57`)
@@ -268,7 +290,7 @@ Three separate defects combine to produce this:
   at `:188` **before** dispatching either branch. That is D8.
 - Every subsequent `publishProgress` is therefore a no-op against a nil
   continuation, on both the fallback branch and the non-recoverable branch.
-- The gate at `:582` would not have finished the stream anyway, because
+- The gate at `:583` would not have finished the stream anyway, because
   `if case .ready = progress, case .failed = progress` is unsatisfiable. That is
   D3.
 
@@ -372,8 +394,8 @@ filename classifiers in the same package disagree about the same filename.
 statements at file scope. Top-level code outside `main.swift` does not compile in
 a Swift target, so this file cannot be folded into the test target as it stands.
 
-`Tests/BERTEmbeddingTest.swift:14` hard-codes an absolute home-directory path
-into a tracked file. `Tests/EmbeddingTest.swift:16` hard-codes
+`Tests/BERTEmbeddingTest.swift:15` hard-codes an absolute home-directory path
+into a tracked file. `Tests/EmbeddingTest.swift:17` hard-codes
 `/path/to/bge-small-en-v1.5.gguf`. Both then `throw XCTSkip(...)` when the file
 is missing, which means that if either were compiled it would skip forever and
 report green. That is exactly the silent-pass failure mode this spec's skip
@@ -457,7 +479,7 @@ run. Four classes, and every case in `## Tests` declares exactly one.
 | --- | --- | --- | --- |
 | `SFC-A` | Any host with Python 3 and a checkout. No build. | `R0` | Yes |
 | `SFC-B` | iOS Simulator, arm64, stub slice, via SwiftPM plus `simctl` per N10. | `R0`, `R1`, `R2` | Yes, 4 cases executed |
-| `SFC-C` | Physical arm64 iOS device, real slice. | `R0`, `R1`, `R2`, and `R3` when a model asset is present | No. See Q1 |
+| `SFC-C` | Physical arm64 iOS device, real slice. | `R0`, `R1`, `R2`, and `R3` when a model asset is present | No. See Q1 and Q3 |
 | `SFC-X` | macOS host `swift test`. | Nothing. Blocked by D4. | Yes, fails |
 
 `SFC-X` is listed only so that a reader who reaches for `swift test` finds the
@@ -466,6 +488,22 @@ answer here instead of rediscovering B3.
 The suite's normative surface is `SFC-B`, because it is the only one that runs
 unattended in CI today. `SFC-C` is operator-run. Every `R3` case is therefore
 written to be skipped, explicitly and loudly, on `SFC-B`.
+
+**`SFC-C`'s design status, stated plainly rather than left to be inferred from
+Q1 alone.** `SFC-C` carries two distinct open questions, not one. Q1 asks
+whether a physical device is *available*; even if the answer is yes, this
+ticket does not specify the *mechanism* by which a package-only, no-Xcode
+-project test bundle gets code-signed, provisioned, installed, and launched on
+that device. `SFC-B` required solving several non-obvious problems to reach
+"measured" (N7, N10: SwiftPM's macOS-shaped bundle output, a hand-authored
+`Info.plist`, the platform `xctest` agent). None of that discovery was
+repeated for the device case, and the device case is not a smaller version of
+it: it plausibly needs a provisioning profile, an entitlements file, and a
+device-deployment tool (`devicectl`, `ios-deploy`, or equivalent), none of
+which is named here. `SFC-C` is consequently **not** asserted as a solved,
+executable surface in this revision; it is specified only to the level of "two
+operator-supplied inputs," and this ticket does not claim more than that. See
+`### Runner` below and Q3.
 
 ### Why the runner is SwiftPM plus simctl rather than xcodebuild
 
@@ -513,16 +551,38 @@ not decide it. Four things do.
    hand-rolled timing primitive at the foundation of the project's trust artifact
    is the wrong trade, and the probes in N5 already had to write exactly that
    race to work around its absence.
-2. **The subjects are not `Sendable`, and that is the point.**
+2. **The subjects are not `Sendable`. This ground is a design judgment, not a
+   measured compiler-enforced blocker, and is stated as such.**
    `LlamaInstance` is a non-final class with mutable state
    (`Core Engine/LlamaInstance.swift:18`), `ModelCache` is a class over a
    concurrent `DispatchQueue` (`Service Layer/CacheSettings.swift:53-61`), and
-   `Catalyst` is a singleton over a barrier queue. D1 is *about* that sharing.
-   Swift Testing's test functions are free functions whose captures must satisfy
-   Sendable checking; characterizing these objects would require wrapping them in
-   `@unchecked Sendable` boxes or adding isolation, which changes the thing being
-   measured. `XCTestCase` methods are ordinary methods on a reference type and
-   need none of that ceremony.
+   `Catalyst` is a singleton over a barrier queue. D1 is *about* that sharing,
+   and none of the three types conforms to `Sendable`. That much is fact. But
+   `Package.swift:1` declares `// swift-tools-version: 5.12`, `swift package
+   tools-version` reports `5.12.0`, and no target sets `swiftLanguageMode` or
+   any strict-concurrency `swiftSettings` (verified by inspection: `grep -n
+   'swiftLanguageMode\|swiftSettings' Package.swift` returns nothing). SwiftPM's
+   default for a manifest below tools-version 6.0 is Swift 5 language mode,
+   whose default Sendable enforcement is minimal. In that actual mode, a free
+   `@Test` function in Swift Testing capturing a non-`Sendable` `LlamaInstance`
+   is not forced by the compiler into `@unchecked Sendable` boxing or explicit
+   isolation the way Swift 6 mode's strict checking would force it; this ground
+   was not probed (no `@Test` function was attempted against these types, and
+   none is planned only to settle this argument), so its severity was never
+   measured against the language mode that actually governs it. The honest
+   version of the claim is narrower than the original: adopting Swift Testing
+   here would still cross a semantic line, handing genuinely shared, mutable,
+   non-`Sendable` state to a free function whose calling convention assumes
+   isolation is either absent or the caller's problem, and that is a real
+   coupling-of-test-intent-to-implementation-detail cost worth avoiding. It is
+   not, today, a compiler error this package's language mode would raise. The
+   revisit trigger below already covers the case where this changes: when
+   ODC-0101 moves the runtime to Swift 6 mode, this ground becomes the
+   measured, compiler-enforced one its original phrasing assumed it already
+   was. `XCTestCase` methods are ordinary methods on a reference type and need
+   none of this discussion regardless of language mode, which is why the
+   decision does not depend on this ground alone; reason 1 carries it on its
+   own.
 3. **The manifest is a hazard.** `Package.swift:1` declares
    `swift-tools-version: 5.12`, a version that never shipped (ODC-0002 E6).
    Introducing a second test framework whose integration is gated on
@@ -656,7 +716,7 @@ closed and mechanically checked.
 | `Package.swift` | No | The test target path already covers the new files. |
 | `Package.resolved` | No | ODC-0002 owns it. |
 | `OnDeviceCatalyst/**`, `OnDeviceCatalyst.xcodeproj/**` | No | ODC-0016 owns the fork. |
-| `Tests/OnDeviceCatalystTests/**` | Yes | New characterization sources, plus the N1 repair. |
+| `Tests/OnDeviceCatalystTests/**` | Yes | New characterization sources, plus the N1 repair. Owned exhaustively by this ticket; see `## Interfaces`, Checker, for the boundary against ODC-0003's `Benchmarks/` directory. |
 | `Tests/EmbeddingTest.swift`, `Tests/test_embedding.swift`, `Tests/BERTEmbeddingTest.swift` | No | Pinned, see above. |
 | `scripts/**` | Yes, additive | Runner, checker, and their self-tests. |
 | `docs/characterization/**` | Yes | Fingerprints and the human record. |
@@ -756,6 +816,21 @@ device, and exits non-zero if any expected-executed case did not execute.
 `--surface device` requires a signing identity and a destination id supplied by
 the operator, never discovered and never written into any tracked file.
 
+**This interface is declared, not designed, and that gap is named rather than
+hidden behind two plausible-looking flags.** The two parameters name the
+inputs an eventual device-execution path will need, but this ticket does not
+specify how a package-only test bundle, built the same way `SFC-B`'s is
+(`swift build --build-tests`, no `.xcodeproj` involvement), gets code-signed
+with the supplied identity, packaged with a provisioning profile and
+entitlements, installed on the device named by `--destination-id`, and
+launched there through some device-deployment tool. None of that was measured
+by this ticket's discovery, unlike every other design decision in `## Design`.
+Until it is, `--surface device` is a documented but unimplemented entry point:
+invoking it is expected to fail, loudly, at whichever step of that unspecified
+sequence has not yet been built, and that failure is `harness-defect`, not a
+silent no-op. See Q3 for the disposition and the obligation this places on
+`ODC-0010`, `ODC-0011`, and `ODC-0012`.
+
 ### Checker
 
 ```
@@ -775,6 +850,24 @@ the checker could not run. This mirrors `scripts/check-baseline.py`.
 a test method or an `R0` check, and every test method must appear in `## Tests`.
 A suite that grows without its spec, or a spec that promises cases nobody wrote,
 fails here.
+
+**Ownership boundary, stated explicitly so it cannot be reintroduced.**
+`--inventory` walks `Tests/OnDeviceCatalystTests/**` in full, with no directory
+exclusion, naming-prefix carve-out, or owner-marker mechanism, because none is
+needed: **ODC-0004 owns `Tests/OnDeviceCatalystTests/**` entirely.** This was
+a blocking finding in review pass two (a collision with ODC-0003's planned
+benchmark harness) and it is resolved at the source, not by scoping logic in
+this checker. ODC-0003 places no file under `Tests/OnDeviceCatalystTests/`, or
+under any other path under `Tests/`; its benchmark harness lives in its own
+top-level directory, `Benchmarks/`, as a separate SwiftPM test target with its
+own path, reusing this ticket's build-and-deploy *pattern* (`swift build
+--build-tests`, repackage into a flat iOS bundle, run through the platform
+`xctest` agent) without sharing this ticket's directory. See
+[`docs/specs/ODC-0003-benchmark-contract.md`](ODC-0003-benchmark-contract.md),
+"Relationship to ODC-0004." With that boundary drawn, a future test method
+appearing under `Tests/OnDeviceCatalystTests/**` that this spec's `## Tests`
+catalog does not name is unambiguously drift this checker exists to catch, not
+a legitimate sibling-ticket addition this checker needs to tolerate.
 
 ## Data flow
 
@@ -842,7 +935,7 @@ worthless rather than merely red:
 - **No absolute home-directory path may appear in any file this ticket adds.**
   `check-characterization.py --naming` applies the ODC-0002 denylist pattern
   `/Users/[^/ "]+` to every added test source, script, and document. The existing
-  violation at `Tests/BERTEmbeddingTest.swift:14` is recorded as a finding and
+  violation at `Tests/BERTEmbeddingTest.swift:15` is recorded as a finding and
   handed to the disposition ticket; this ticket does not edit that file, and the
   checker exempts exactly those three pinned paths by name so the exemption is
   visible rather than implicit.
@@ -1005,8 +1098,8 @@ obligation.
 
 ## Open questions and gates
 
-Recorded rather than assumed away. Both must be closed before this spec can move
-past `SPEC_REVIEW`.
+Recorded rather than assumed away. All three must be closed before this spec
+can move past `SPEC_REVIEW`.
 
 **Q1. Is a physical device surface available to the project?** `SFC-C` was not
 measured. The `R3` tier (5 cases) is specified but unproven, and GitHub-hosted
@@ -1038,9 +1131,62 @@ and the bundle it lands in. Owner: **ODC-0014**. Until it is closed, `C-D5-4`
 asserts only that construction throws, and does not assert which of the two
 messages is produced.
 
+**Q3. What is the device-execution mechanism itself, distinct from device
+availability (Q1)?** Not measured by this ticket. `scripts/run-characterization.sh
+--surface device --destination-id <id>` declares the two operator-supplied
+inputs but does not specify code signing, provisioning, entitlements, or a
+device-deployment tool for a package-only test bundle built the same way
+`SFC-B`'s is (`swift build --build-tests`, no `.xcodeproj` involvement).
+`SFC-B`'s equivalent problem required real, non-obvious engineering (N7, N10);
+the device problem was not given the same discovery budget, and this ticket
+does not claim otherwise. There is no deciding command for this question,
+because a command that decided it would be the design this question says is
+missing; that absence is itself the answer, and is why Q3 cannot be closed the
+way Q1 and Q2 were, by running one command. Two acceptable outcomes, mirroring
+Q1's structure, and the ticket is decision-complete under either:
+
+- The mechanism is measured before this ticket reaches `DONE`: at minimum,
+  build for `arm64-apple-ios17.0`, sign with an available identity, install
+  and run one sanity `R0`/`R1` case on a physical device, and record what that
+  took in `docs/characterization/v2.0.4-characterization.md`, extending
+  `--surface device` to match what was actually measured.
+- The mechanism is not measured here. `SFC-C` remains `Measured: No` for the
+  device-execution path itself, which is a broader claim than Q1's
+  "no device was available for `R3`": even a hypothetical available device
+  could not run anything today, because the deployment mechanism does not
+  exist yet. Whichever of **ODC-0010**, **ODC-0011**, or **ODC-0012** first
+  needs to execute an `R3` case inherits the obligation to design and measure
+  it, before that ticket's own repair is accepted. Recorded as an explicit
+  obligation in `## Ticket allocation`, not assumed solved.
+
+The second outcome is not a weakening, for the same reason Q1's is not: it is
+what honesty about an unbuilt mechanism looks like, and it is strictly better
+than a runner interface that looks complete and fails opaquely the first time
+someone invokes it against real hardware.
+
 ## Validation
 
-Each line is a command and the condition on its exit code or output.
+Each line is a command and the condition on its exit code or output. Where a
+command below needs a base revision to diff against, it is `ebea213`
+("ODC-0002: execute v2 baseline, allocate finding tickets, correct
+lockfile"), the commit at which ODC-0002 reached `DONE`: it is the last commit
+to touch `Package.resolved` (D6's own correction) and it predates every commit
+in this ticket's own history (`1e63c34` onward). It is therefore the correct
+zero-point for "did this ticket change any runtime, manifest, lockfile, fork,
+or project file": diffing from `ebea213` isolates exactly what ODC-0004 itself
+has touched, without also flagging ODC-0002's own, already-accepted, D6
+repair as if this ticket had made it. (The spec's discovery narrative
+elsewhere cites `6d72193`, two commits earlier, as the revision the scratch
+-tree measurements in `## Current state and evidence` were taken against;
+that citation is unaffected and is not this criterion's base, because
+`6d72193` predates the D6 lockfile correction and diffing from it would report
+ODC-0002's own accepted change as a violation, which is not what A2 is for.)
+That literal hash is substituted directly below rather than left as a
+placeholder, the same fix ODC-0002's own pass-two review required for the
+identical criterion, resolved there with `59da80b`. Verified now: `git diff
+--stat ebea213 -- Sources Package.swift Package.resolved OnDeviceCatalyst
+OnDeviceCatalyst.xcodeproj` produces empty output at the time of this
+revision.
 
 1. `python3 scripts/check-characterization.py` exits 0. This single command
    decides the `R0` assertions, the fingerprints, the naming and comment-block
@@ -1052,7 +1198,7 @@ Each line is a command and the condition on its exit code or output.
    own tests, following `scripts/test-project-state-validator.py`.
 5. `scripts/test-run-characterization.sh` exits 0. The runner has its own test,
    following `scripts/test-check-dco.sh`.
-6. `git diff --stat <base> -- Sources Package.swift Package.resolved
+6. `git diff --stat ebea213 -- Sources Package.swift Package.resolved
    OnDeviceCatalyst OnDeviceCatalyst.xcodeproj` produces empty output.
 7. `swift package dump-package` output is byte-identical before and after.
 8. `python3 scripts/check-baseline.py` still exits 0, so this ticket did not
@@ -1107,7 +1253,7 @@ that could not be decided this way were deleted rather than softened.
 | # | Criterion | Deciding command |
 | --- | --- | --- |
 | A1 | The test target compiles for the simulator triple | `swift build --build-tests --sdk "$(xcrun --sdk iphonesimulator --show-sdk-path)" --triple arm64-apple-ios17.0-simulator -c debug` exits 0 |
-| A2 | No runtime source, manifest, lockfile, fork, or project file changed | `git diff --stat <base> -- Sources Package.swift Package.resolved OnDeviceCatalyst OnDeviceCatalyst.xcodeproj` is empty |
+| A2 | No runtime source, manifest, lockfile, fork, or project file changed since `ebea213`, the commit at which ODC-0002 reached `DONE` and last touched `Package.resolved` (see `## Validation` for why this commit, not the discovery revision `6d72193`, is the correct base) | `git diff --stat ebea213 -- Sources Package.swift Package.resolved OnDeviceCatalyst OnDeviceCatalyst.xcodeproj` is empty |
 | A3 | The package graph is unchanged | `swift package dump-package` output before and after is byte-identical |
 | A4 | Every `R0` assertion in `## Tests` passes | `python3 scripts/check-characterization.py --packaging` |
 | A5 | Every defect-site fingerprint matches | `python3 scripts/check-characterization.py --fingerprints` |
@@ -1123,6 +1269,7 @@ that could not be decided this way were deleted rather than softened.
 | A15 | Project state is consistent | `python3 scripts/validate-project-state.py` |
 | A16 | The run leaves the working tree unchanged | `git status --porcelain` is empty after `scripts/run-characterization.sh` |
 | A17 | Q1 is closed in the characterization document with one of its two enumerated outcomes | `python3 scripts/check-characterization.py --inventory` requires an `r3_disposition` field of `executed` or `specified-unexecuted` |
+| A18 | Q3 is closed in the characterization document with one of its two enumerated outcomes | `python3 scripts/check-characterization.py --inventory` requires a `device_execution_disposition` field of `measured` or `unmeasured-deferred` |
 
 Deliberately absent, with reasons:
 
@@ -1134,26 +1281,68 @@ Deliberately absent, with reasons:
 - **A device-tier pass requirement.** Q1 may legitimately resolve to
   `specified-unexecuted`. A17 requires the disposition to be recorded, not that
   it be favorable.
+- **A device-execution-mechanism design requirement.** Q3 may legitimately
+  resolve to `unmeasured-deferred`. A18 requires the disposition to be
+  recorded and the obligation assigned, not that the mechanism ship in this
+  revision.
 
 ## Ticket allocation
 
 ODC-0002 reserved `ODC-0010` through `ODC-0049` for tickets created from
-baseline evidence, and allocated `ODC-0010` through `ODC-0017`. This spec
-proposes three more from the same range. **This spec does not edit
-`Tickets.md`.** The rows below are proposals for the founder, using ODC-0002's
-default column values so the validator passes on the same commit that creates
-them.
+baseline evidence, and allocated `ODC-0010` through `ODC-0017`. This ticket's
+own discovery identified three further findings needing tickets from the same
+range: N1 (the test target does not compile), the disposition of the three
+orphaned files (N9), and the Swift Testing revisit trigger (`## Design`,
+Framework choice, reason 2). Those three rows, `ODC-0018` through `ODC-0020`,
+were added to `Tickets.md` by commit `1e63c34` ("ODC-0004: characterization
+suite spec; allocate ODC-0018/0019/0020"), the same commit that drafted the
+first version of this spec.
 
-| Proposed ID | Type | Title | Milestone | Status | Priority | Dependencies | Next Gate |
+**They are allocated, not proposed, and this revision states that plainly.**
+An earlier version of this section described them as "proposals for the
+founder" while `Tickets.md` already carried them as real `BACKLOG` rows; pass
+two's review (finding 1) correctly identified that as the document and the
+ledger disagreeing about the ledger's own state. That disagreement is
+corrected here by description, not by reverting the rows: reverting would
+erase real findings from the canonical ledger to make a stale sentence true,
+which is a worse fix than making the sentence match reality. What remains
+true, and is restated because it is the part that still matters, is that
+**this document, the spec file itself, edits no file.** The ledger mutation
+happened in `Tickets.md`'s own commit history under this ticket, not in this
+prose. The founder's review of this revision is accordingly also, implicitly,
+a ruling on whether that ordering (ledger before adversarial review) was
+acceptable, separate from whether the three rows' content is acceptable.
+
+The table below transcribes the three rows verbatim from `Tickets.md` as they
+stand today, so a reader has the rationale next to the ticket, not as a second
+copy that could drift: `Tickets.md` remains the single source of truth, and
+`scripts/validate-project-state.py` checks the real file, never this table.
+
+| ID | Type | Title | Milestone | Status | Priority | Dependencies | Next Gate |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| ODC-0018 | bug | Test target does not compile, `PredictionConfig.quality` does not exist (N1) | P0 | BACKLOG | P1 | ODC-0002 | discovery |
-| ODC-0019 | decision | Disposition of the three orphaned files under `Tests/` (N9) | P0 | BACKLOG | P2 | ODC-0004 | discovery |
-| ODC-0020 | chore | Adopt Swift Testing once the runtime is Sendable-clean | P1 | BACKLOG | P2 | ODC-0101 | dependency approval |
+| ODC-0018 | bug | Declared test target does not compile on any triple (`PredictionConfig.quality`) | P0 | BACKLOG | P0 | ODC-0002 | discovery |
+| ODC-0019 | decision | Disposition of three orphaned test files outside the target path | P0 | BACKLOG | P2 | ODC-0004 | discovery |
+| ODC-0020 | decision | Revisit XCTest versus Swift Testing after the concurrency model lands | P0 | BACKLOG | P2 | ODC-0101 | discovery |
 
-ODC-0018 is unusual in that ODC-0004 repairs it as a precondition. It still gets
+ODC-0018 is unusual in that ODC-0004 repairs it as a precondition. It still got
 a row, because the defect was real, it was invisible to the baseline, and a
 finding that is fixed in passing and never recorded is a finding that will
 recur.
+
+**Reconciliation with the baseline's own defect-to-ticket mapping.** `## B1`
+above maps the eight baseline defects to `ODC-0010` through `ODC-0017`
+(D6 to `ODC-0002`, which corrected the lockfile). `docs/baselines/v2.0.4.md`
+originally carried a different, placeholder mapping for the same defects
+(`ODC-0101`, `ODC-0202`, `ODC-0103`, `ODC-0300`), and pass two's review
+(finding 7) correctly flagged the two canonical documents disagreeing about
+which ticket owns each defect. That divergence no longer exists: commit
+`838bdfa` updated `docs/baselines/v2.0.4.md`'s defect table,
+`docs/baselines/v2.0.4-environment.json`'s manifest, and
+`scripts/render-baseline.py`'s `FINDING_TICKETS` mapping to the same
+`ODC-0010`-through-`ODC-0017`/`ODC-0002` allocation this spec's `## B1` table
+already used, and `python3 scripts/check-baseline.py` passes against the
+reconciled mapping. The two documents agree as of this revision; no further
+follow-up ticket is needed for the reconciliation itself.
 
 **Obligations this ticket places on other tickets.** Recorded here because a
 characterization suite that nobody is required to update decays into a wall of
@@ -1161,15 +1350,15 @@ red.
 
 | Ticket | Obligation |
 | --- | --- |
-| ODC-0010 | Update `C-D1-1`, `C-D1-2`, `C-D1-3`, `F-D1-1` in the same commit as the repair. |
-| ODC-0011 | Update `C-D2-1` through `C-D2-4`, `F-D2-1`, `F-D2-2`. |
-| ODC-0012 | Update `C-D3-1`, `C-D3-2`, `C-D3-3`, `F-D3-1`. |
+| ODC-0010 | Update `C-D1-1`, `C-D1-2`, `C-D1-3`, `F-D1-1` in the same commit as the repair. If this is the first of ODC-0010/0011/0012 to execute an `R3` case, also design and measure the device-execution mechanism (Q3) before that repair is accepted. |
+| ODC-0011 | Update `C-D2-1` through `C-D2-4`, `F-D2-1`, `F-D2-2`. Inherits the Q3 obligation above if ODC-0010 has not already discharged it. |
+| ODC-0012 | Update `C-D3-1`, `C-D3-2`, `C-D3-3`, `F-D3-1`. Inherits the Q3 obligation above if neither ODC-0010 nor ODC-0011 has already discharged it. |
 | ODC-0013 | Update `C-D4-1`, `C-D4-2`, `C-D4-3`, `C-N2-1`. Adding a macOS slice also makes `SFC-X` real, at which point the runner gains a macOS surface. |
 | ODC-0014 | Update `C-D5-1` through `C-D5-4`, and close Q2. |
 | ODC-0015 | Update `C-D8-1`, `C-D8-2`, `C-D8-3`, `F-D8-1`. |
 | ODC-0016 | Update `C-D7-1`, `C-D7-2`. If the fork is deleted, the census assertion becomes "zero shared files". |
 | ODC-0017 | Update `C-E2-1`, `C-N4-1`. |
-| ODC-0003 | May consume `scripts/run-characterization.sh` for its device surface. No obligation in the other direction. |
+| ODC-0003 | May consume `scripts/run-characterization.sh` for its device surface. No obligation in the other direction. ODC-0003 places no file under `Tests/OnDeviceCatalystTests/**`; its harness lives in its own `Benchmarks/` directory, so no scope overlap exists for `--inventory` to police. |
 
 ## Alternatives considered
 

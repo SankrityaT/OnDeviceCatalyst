@@ -2,14 +2,14 @@
 id: ODC-0003
 title: Cross-backend benchmark contract
 type: benchmark
-status: REVISION
+status: APPROVED
 milestone: P0
 owner: unassigned
 dependencies: ODC-0002
-founder_approved: pending
+founder_approved: delegated-to-manager-2026-09-01
 last_updated: 2026-09-02
 evidence_fresh_until: 2026-09-16
-unresolved_questions: Q1 physical-device availability for execution, shared with ODC-0004; Q2 whether the MLX backend initializes on any measured surface
+unresolved_questions: none
 ---
 
 # ODC-0003: Cross-backend benchmark contract
@@ -38,15 +38,27 @@ is faster on iOS" or "MLX beats llama.cpp on this package" is not a claim this
 contract can license, regardless of what any individual result shows, and
 `## Raw artifact schema` makes that mechanical rather than aspirational.
 
-**Relationship to ODC-0004, stated so scope is not duplicated.** ODC-0004
-owns tests: it characterizes v2's current, including wrong, behavior, and its
-own checker forbids any assertion that compares a measured duration to a
+**Relationship to ODC-0004, stated so scope is not duplicated, and so the
+directory boundary cannot be reintroduced by a future reader.** ODC-0004 owns
+tests: it characterizes v2's current, including wrong, behavior, and its own
+checker forbids any assertion that compares a measured duration to a
 threshold. This ticket owns every timing, throughput, and memory claim the
-project makes. ODC-0004's runner builds and deploys the package to a
-simulator or device with no Xcode project and no code signing ceremony; this
-contract reuses that mechanism rather than inventing a second one, and adds
-nothing to it that competes with ODC-0004's scope. See `## Reproduction
-procedure`.
+project makes. ODC-0004's "Permitted changes to tracked files" table grants
+itself `Tests/OnDeviceCatalystTests/**` in full, with no carve-out, and its
+`--inventory` checker walks that same path expecting every test method in it
+to be named in ODC-0004's own `## Tests`. This ticket therefore places no file
+anywhere under `Tests/`, ever. The benchmark harness lives in a separate,
+top-level directory this ticket owns outright, `Benchmarks/` (see
+`## Reproduction procedure` step 4 for the exact layout), as its own SwiftPM
+test target, distinct from `OnDeviceCatalystTests`. This gives the two specs
+zero path overlap: ODC-0004's inventory checker never walks `Benchmarks/` and
+needs no exclusion list to say so, and this contract never touches
+`Tests/OnDeviceCatalystTests/`. `Benchmarks/` reuses the same build-and-deploy
+*pattern* ODC-0004 documents (`swift build --build-tests`, repackage into a
+flat iOS bundle, run through the platform `xctest` agent via `simctl` or
+`devicectl`) rather than inventing a second build system, but it is a
+separate SwiftPM target with its own path, not a subdirectory of ODC-0004's
+target. See `## Reproduction procedure`.
 
 **Boundary statement, because this is a public document under
 [`ODC-ADR-0003`](../decisions/ODC-ADR-0003-public-private-research-boundary.md).**
@@ -69,14 +81,33 @@ There is no existing v2 benchmark artifact in this repository. What exists:
   `DONE`), which established the build matrix this contract must respect and
   is quoted verbatim in `## Backends and pinned revisions` below.
 - [`docs/specs/ODC-0004-v2-characterization-suite.md`](ODC-0004-v2-characterization-suite.md)
-  (`SPEC_DRAFT`), which built and ran a test bundle against the iOS Simulator
-  with no Xcode project, and explicitly hands this ticket the reusable half of
-  that pipeline.
+  (`REVISION`), which built and ran a test bundle against the iOS Simulator
+  with no Xcode project, and states in its own text that this ticket "may
+  consume `scripts/run-characterization.sh`" for that build-and-deploy
+  pattern, with "no obligation in the other direction."
 
 Neither artifact contains a timing, throughput, or memory number. ODC-0002
 excluded build durations by name, on the grounds that an unpinned wall-clock
 figure in a baseline invites exactly the kind of comparison this contract
 exists to prevent.
+
+**Why `dependencies:` above names only ODC-0002, stated explicitly rather than
+left to be inferred.** This contract's reproduction procedure is easiest to
+execute by reusing the build-and-deploy pattern ODC-0004 already proved out
+(`swift build --build-tests`, repackage into a flat iOS bundle, run through the
+platform `xctest` agent via `simctl` or `devicectl`), and `## Reproduction
+procedure` step 4 says so. But that pattern is a documented, replicable
+sequence of ordinary SwiftPM and Apple platform commands, not a proprietary
+capability only ODC-0004 can supply: any equivalent build/deploy mechanism
+that produces the same artifact (a flat iOS `.xctest` bundle for this
+contract's own `Benchmarks/` target) satisfies this contract equally.
+ODC-0004's script is reused only because it already exists and is proven, not
+because this contract cannot function without it, and this contract adds no
+file under `Tests/OnDeviceCatalystTests/` and requires no change to
+ODC-0004's deliverables to be executed. That is why ODC-0004 is not listed as
+a hard dependency: a scheduler reading `Tickets.md`'s dependency column alone
+would otherwise conclude this contract cannot start until ODC-0004 reaches
+`DONE`, which is stronger than what is actually true.
 
 Freshness follows `ROADMAP.md` operating gate 4: external hardware, model,
 runtime, and SDK evidence expires after 14 days. `evidence_fresh_until` above
@@ -224,6 +255,14 @@ disagree about what they measured.
    delivered to the caller. TTFT necessarily includes prefill compute time; a
    report that describes it as excluding prefill is wrong by definition and
    the checker rejects any manifest field named to suggest otherwise.
+   llama.cpp and MLX are not guaranteed to expose the same hook for "prompt
+   tokenization completes," so the manifest's `ttft_start_hook` field records,
+   per run, the specific function or call site the clock was actually started
+   from (for example, the return of the tokenizer call, or the call site
+   immediately preceding the generation request). This is the same discipline
+   `prefill_duration_boundary` already applies to the prefill/decode boundary
+   below, applied here so two honest implementers cannot silently instrument
+   different instants and still both claim to satisfy this definition.
 2. **Prefill throughput.** Prompt tokens per second, computed as
    `prompt_token_count / prefill_duration_seconds`. Where the backend exposes
    a distinct boundary between "prompt consumed" and "first decode step
@@ -242,21 +281,41 @@ disagree about what they measured.
    because it silently absorbs TTFT into the rate and biases it.
 4. **Peak memory**, on a declared basis. See the dedicated requirement
    immediately below. Never a bare number.
-5. **Model load time**, cold and warm distinguished. **Cold**: the first
-   successful load of this exact model file, by checksum, since the harness
-   process (and, on iOS, the app session) started; no prior load of that file
-   has occurred in the current process lifetime. **Warm**: any subsequent
-   load of the same file in the same process lifetime. Neither macOS nor iOS
-   gives a sandboxed process a supported way to force the OS file cache cold
-   the way ODC-0002 could force a SwiftPM cache cold with `--cache-path`; this
-   contract does not pretend otherwise. The manifest's `cache_state` field is
-   therefore defined operationally, per the rule above, and every run records
-   which case it measured rather than which case the operator intended.
+5. **Model load time**, first-load-in-process and repeat-load-in-process
+   distinguished. This metric does not claim, and this contract has no
+   mechanism that could claim, anything about the OS disk or page cache
+   state. Two independent reasons, stated plainly rather than left implicit:
+   neither macOS nor iOS gives a sandboxed process a supported way to force
+   the OS file cache cold the way ODC-0002 could force a SwiftPM cache cold
+   with `--cache-path`, and, separately, `## Reproduction procedure` step 2
+   requires a `sha256` verification pass over every model file before any
+   load happens, which itself reads the file end to end and would populate
+   any OS-level file cache that existed to populate, even on a platform that
+   did expose one. No reordering of this contract's own procedure changes
+   that: the checksum must be verified before a model is trusted enough to
+   load, and verifying a checksum means reading the bytes. **First-load**:
+   the first successful load of this exact model file, by checksum, since the
+   harness process (and, on iOS, the app session) started; no prior load of
+   that file has occurred in the current process lifetime. **Repeat-load**:
+   any subsequent load of the same file in the same process lifetime. The
+   manifest's `load_recurrence` field (schema enum
+   `first-load-in-process` / `repeat-load-in-process`) is defined
+   operationally, per the rule above, and every run records which case it
+   measured rather than which case the operator intended. A reader who needs
+   a genuinely cache-cold measurement will not find one in this contract;
+   none is offered.
 6. **Completion reason.** The stop reason the runtime itself reports for how
    generation ended, captured verbatim as a string from a declared, per-backend
-   enumeration (for example, natural stop, maximum tokens reached, stop
-   sequence matched, cancelled, error). The harness records exactly what the
-   runtime returned; it never infers a reason from token counts or timing, and
+   enumeration. That enumeration is not a prose list an operator is trusted to
+   honor; it is a manifest field, `backends[].completion_reason_enum`, a
+   required, non-empty array of strings (for example, natural stop, maximum
+   tokens reached, stop sequence matched, cancelled, error) declared once per
+   backend, per session, and both `runs[].metrics.completion_reason` and
+   `runs[].correctness_gates.stop_reason` are checked against the matching
+   backend's array by the checker, never accepted as self-certified by the
+   harness. See `### Fields the checker computes, never accepts as authored`.
+   The harness records exactly what the runtime returned; it never infers a
+   reason from token counts or timing, and
    a value outside the declared enumeration is a harness defect, not a new
    category to paper over silently.
 
@@ -281,7 +340,12 @@ support.
   a stated, matching basis, and the manifest says so explicitly.** Where the
   bases differ, or where matching validity has not been checked, the
   comparison entry is recorded with `comparable: false` and a
-  `basis_mismatch` reason, not silently omitted and not silently merged.
+  `basis_mismatch` reason, not silently omitted and not silently merged. This
+  is not a rule an operator is trusted to honor by hand: `comparable` is
+  never accepted as written by the harness. The checker recomputes it from
+  `bases[0] == bases[1]` and rejects any manifest that authors a mismatched
+  `bases` pair alongside `comparable: true`; see `### Fields the checker
+  computes, never accepts as authored`.
 - **Every peak-memory entry additionally records**: the sampling cadence (peak
   is sampling-rate dependent, and an unrecorded cadence makes the number
   irreproducible), the measurement window (model-load only, load plus
@@ -314,20 +378,24 @@ zero, a placeholder, or an average with the passing runs.
    harness queries the runtime for what it actually initialized on, not what
    was requested: active backend identity, GPU offload layer count or
    equivalent, and thread count where applicable. The observed configuration
-   must equal the requested configuration field for field. A silent fallback,
-   for example a GPU request that actually ran on CPU, is a gate failure, not
-   a result mislabeled by its requested configuration. Both the requested and
-   observed values are recorded, so a fallback is diagnosable, not merely
-   flagged.
+   must equal the requested configuration field for field
+   (`correctness_gates.backend_match`, `.offload_match`, computed by the
+   checker per `### Fields the checker computes, never accepts as authored`,
+   not self-declared). A silent fallback, for example a GPU request that
+   actually ran on CPU, is a gate failure, not a result mislabeled by its
+   requested configuration. Both the requested and observed values are
+   recorded, so a fallback is diagnosable, not merely flagged.
 3. **Tokens were genuinely generated.** The observed generated-token count
    matches the workload's `max_tokens` target, or generation ended earlier
    through one of the completion reasons declared valid for that backend in
-   `## Workloads and metrics` item 6. The produced output is non-empty and
-   passes a basic sanity check appropriate to the backend's output type (for
-   example, decodes to valid text, or every token id is within the declared
-   vocabulary range). Zero tokens, a caught exception silently converted into
-   an empty result, or a stop reason outside the declared enumeration all fail
-   this gate.
+   `## Workloads and metrics` item 6, checked against
+   `backends[].completion_reason_enum` by the checker
+   (`correctness_gates.stop_reason_valid`, same subsection). The produced
+   output is non-empty and passes a basic sanity check appropriate to the
+   backend's output type (for example, decodes to valid text, or every token
+   id is within the declared vocabulary range). Zero tokens, a caught
+   exception silently converted into an empty result, or a stop reason
+   outside the declared enumeration all fail this gate.
 
 Gate evaluation is per run, not a pre-session checklist and not a
 post-session filter applied to convenient results. `## Abort criteria` states
@@ -343,27 +411,62 @@ aborts the arm exactly as a timed run would, because a warmup that cannot pass
 the gate says the arm cannot produce a number at all. Warmup exists to remove
 first-call measurement artifacts from the decode and prefill statistics; it
 does not apply to the model-load-time metric, which is a first-class result
-and is captured on every load, cold and warm alike, never discarded.
+and is captured on every load, first-load and repeat-load alike, never
+discarded.
 
-**Minimum repetitions.** Ten timed repetitions per arm, per metric, is the
-floor. This is an engineering default chosen for this contract, not inherited
-from any external study: it is enough to compute a stable median and a
-nonparametric interval for a typically right-skewed latency or throughput
-distribution, without imposing a session length that makes device-time
-prohibitive. If, after ten repetitions, the coefficient of variation
-(`stdev / mean`) for a metric exceeds `0.15`, the harness runs additional
+**Minimum repetitions, and what the floor is actually for.** Ten timed
+repetitions per arm, per metric, is the floor. This is an engineering default
+chosen for this contract, not inherited from any external study, and this
+document does not claim the floor of ten alone achieves any specific
+precision; it is deliberately the smaller of two numbers working together.
+The precision target this contract actually commits to is downstream of the
+CV escalation rule immediately below: an arm's aggregate for a metric is
+accepted once its coefficient of variation is at or under `0.15`, using as
+few as ten repetitions and as many as thirty, or is honestly labeled
+`high_variance: true` if `0.15` is not reached even at the cap. Ten is the
+minimum sample size below which computing any interval at all, bootstrap or
+otherwise, is not attempted, not a claim that ten repetitions alone are
+sufficient. If, after ten repetitions, the coefficient of variation
+(`stdev / mean`) for a metric exceeds `0.15`, **and `stdev` is at or above
+that metric's absolute floor** (see immediately below; this qualifier did not
+exist before this revision and is load-bearing), the harness runs additional
 repetitions up to a cap of thirty before accepting the arm's statistics for
 that metric; if the coefficient of variation still exceeds the threshold at
 the cap, the arm's aggregate for that metric is recorded with
 `high_variance: true` rather than silently reported as stable. These
-constants (`10`, `0.15`, `30`) are named harness parameters in the manifest,
-not folklore; changing them is a spec revision, not a runtime flag decided
-silently.
+constants (`10`, `0.15`, `30`, and the absolute floors below) are named
+harness parameters in the manifest, not folklore; changing them is a spec
+revision, not a runtime flag decided silently.
+
+**The CV escalation rule has an absolute-scale floor, because CV alone is not
+enough.** Coefficient of variation is scale-free by construction: a
+sub-millisecond mean with a fraction of a millisecond of ordinary timer
+jitter can produce a CV above `0.15` from noise no engineer would call
+meaningful, most plausibly for `model_load_ms` on a repeat-load or `ttft_ms`
+on fast hardware. Escalating to thirty repetitions and permanently recording
+`high_variance: true` for that reason would misrepresent noise as
+instability. The escalation rule above therefore does not fire unless
+`stdev` for that metric is also at or above a named absolute floor,
+`harness_parameters.cv_absolute_floor` in `## Raw artifact schema`, one fixed
+constant per metric. Below its floor, a metric's aggregate is accepted at the
+ten-repetition minimum without escalation and is never flagged
+`high_variance` on CV grounds alone; the floor does not silence a genuinely
+unstable metric, because a metric unstable enough to matter will also have a
+`stdev` above the floor.
 
 **Required dispersion reporting.** Every aggregate reports median, mean,
 sample standard deviation, minimum, maximum, and a 95 percent confidence
-interval computed by the percentile bootstrap (10,000 resamples) around the
-median. **Central tendency alone is insufficient and the schema enforces it**:
+interval computed by the bias-corrected (BC) percentile bootstrap (10,000
+resamples) around the median. This is a deliberate choice against the plainer
+percentile bootstrap, not a default: `## Warmup, repetitions, and statistical
+method`'s own next paragraph states decode and prefill timings are typically
+right-skewed by rare, long-tail stalls, and the plain percentile method is
+the bootstrap variant most sensitive to bias under exactly that kind of
+skew. The bias-corrected variant corrects the interval's median bias without
+requiring the additional jackknife-estimated acceleration term a full BCa
+bootstrap would add, which is not worth its extra implementation cost at the
+sample sizes (10 to 30) this contract actually collects. **Central tendency
+alone is insufficient and the schema enforces it**:
 `## Raw artifact schema` makes `stdev`, `min`, `max`, and both confidence
 bounds required siblings of every reported median, so an aggregate object
 missing them fails schema validation rather than merely looking incomplete
@@ -401,11 +504,14 @@ optional and none may be inferred after the fact from an absent field.
    in the raw record (never deleted) and flagged `thermal-non-nominal` in
    `non_citable_reasons`; see `## Abort criteria` for when repeated
    throttling stops the session outright rather than merely flagging runs.
-6. **Cold versus warm cache**, per the operational definition in
-   `## Workloads and metrics` item 5, recorded per run, never assumed from
-   session position (the first run in a session is not automatically "cold";
-   a prior session's process may still be warm on some platforms, and the
-   harness must check, not assume).
+6. **First-load versus repeat-load, per process**, per the operational
+   definition in `## Workloads and metrics` item 5, recorded per run, never
+   assumed from session position (the first run in a session is not
+   automatically a first-load-in-process measurement of every model; a prior
+   session's process may still hold a given file's state on some platforms,
+   and the harness must check, not assume). Restated because it matters here
+   too: this control never claims anything about OS disk-cache state, only
+   about position within this harness process's own load history.
 7. **Device and OS identity**, recorded per session per `## Hardware, OS, and
    toolchains`, because a session that spans an OS update mid-run is
    measuring two different systems and must say so.
@@ -489,14 +595,18 @@ open questions in `## Open questions` closing.
       "items": {
         "type": "object", "additionalProperties": false,
         "required": ["id", "name", "resolved_revision", "artifact_checksum",
-                     "surface", "is_stub"],
+                     "surface", "is_stub", "completion_reason_enum"],
         "properties": {
           "id": { "type": "string" },
           "name": { "enum": ["llama-cpp", "mlx"] },
           "resolved_revision": { "type": ["string", "null"], "pattern": "^[0-9a-f]{40}$" },
           "artifact_checksum": { "type": ["string", "null"], "pattern": "^[0-9a-f]{64}$" },
           "surface": { "enum": ["ios-device", "ios-simulator", "macos"] },
-          "is_stub": { "type": "boolean" }
+          "is_stub": { "type": "boolean" },
+          "completion_reason_enum": {
+            "type": "array", "minItems": 1, "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          }
         }
       }
     },
@@ -538,12 +648,26 @@ open questions in `## Open questions` closing.
     "harness_parameters": {
       "type": "object", "additionalProperties": false,
       "required": ["min_repetitions", "max_repetitions",
-                   "cv_escalation_threshold", "warmup_repetitions"],
+                   "cv_escalation_threshold", "warmup_repetitions",
+                   "cv_absolute_floor"],
       "properties": {
         "min_repetitions": { "type": "integer", "const": 10 },
         "max_repetitions": { "type": "integer", "const": 30 },
         "cv_escalation_threshold": { "type": "number", "const": 0.15 },
-        "warmup_repetitions": { "type": "integer", "const": 1 }
+        "warmup_repetitions": { "type": "integer", "const": 1 },
+        "cv_absolute_floor": {
+          "type": "object", "additionalProperties": false,
+          "required": ["ttft_ms", "prefill_tokens_per_s",
+                       "decode_tokens_per_s", "peak_memory_bytes",
+                       "model_load_ms"],
+          "properties": {
+            "ttft_ms": { "type": "number", "const": 5 },
+            "prefill_tokens_per_s": { "type": "number", "const": 5 },
+            "decode_tokens_per_s": { "type": "number", "const": 2 },
+            "peak_memory_bytes": { "type": "number", "const": 1048576 },
+            "model_load_ms": { "type": "number", "const": 20 }
+          }
+        }
       }
     },
     "execution_order": {
@@ -562,7 +686,7 @@ open questions in `## Open questions` closing.
       "items": {
         "type": "object", "additionalProperties": false,
         "required": ["run_id", "sequence_index", "arm_id", "backend_id",
-                     "model_id", "workload_id", "cache_state",
+                     "model_id", "workload_id", "load_recurrence",
                      "thermal_state_start", "thermal_state_end",
                      "power_source", "correctness_gates", "metrics",
                      "citable", "non_citable_reasons", "raw_log_path"],
@@ -573,7 +697,7 @@ open questions in `## Open questions` closing.
           "backend_id": { "type": "string" },
           "model_id": { "type": "string" },
           "workload_id": { "type": "string" },
-          "cache_state": { "enum": ["cold", "warm"] },
+          "load_recurrence": { "enum": ["first-load-in-process", "repeat-load-in-process"] },
           "thermal_state_start": { "type": "string" },
           "thermal_state_end": { "type": "string" },
           "power_source": { "enum": ["charging", "battery"] },
@@ -603,7 +727,7 @@ open questions in `## Open questions` closing.
           },
           "metrics": {
             "type": ["object", "null"], "additionalProperties": false,
-            "required": ["ttft_ms", "prefill_tokens_per_s",
+            "required": ["ttft_ms", "ttft_start_hook", "prefill_tokens_per_s",
                          "prefill_duration_boundary", "decode_tokens_per_s",
                          "peak_memory_bytes", "peak_memory_basis",
                          "peak_memory_sample_cadence_ms",
@@ -611,6 +735,7 @@ open questions in `## Open questions` closing.
                          "model_load_ms", "completion_reason"],
             "properties": {
               "ttft_ms": { "type": "number", "minimum": 0 },
+              "ttft_start_hook": { "type": "string", "minLength": 1 },
               "prefill_tokens_per_s": { "type": "number", "minimum": 0 },
               "prefill_duration_boundary": {
                 "enum": ["distinct", "coincides-with-first-token"]
@@ -679,8 +804,14 @@ open questions in `## Open questions` closing.
         "properties": {
           "metric": { "type": "string" },
           "workload_id": { "type": "string" },
-          "backend_ids": { "type": "array", "items": { "type": "string" } },
-          "bases": { "type": "array", "items": { "type": ["string", "null"] } },
+          "backend_ids": {
+            "type": "array", "minItems": 2, "maxItems": 2,
+            "items": { "type": "string" }
+          },
+          "bases": {
+            "type": "array", "minItems": 2, "maxItems": 2,
+            "items": { "type": ["string", "null"] }
+          },
           "comparable": { "type": "boolean" },
           "reason": { "type": ["string", "null"] }
         }
@@ -717,6 +848,46 @@ open questions in `## Open questions` closing.
   }
 }
 ```
+
+### Fields the checker computes, never accepts as authored
+
+A small set of boolean and derived fields exist in the schema above so a
+harness can record what it observed, but the schema alone cannot stop a
+harness (or an operator hand-editing a manifest) from writing an
+inconsistent value into them. For exactly these fields,
+`scripts/check-benchmark.py` recomputes the value from the fields it derives
+from and rejects the manifest (non-zero exit) if the authored value disagrees
+with the recomputed one. None of the fields below is ever taken on faith from
+the harness's own output; the harness's writing of them at capture time is a
+convenience for a human reading the raw manifest before the checker runs, not
+the fact that decides citability.
+
+- **`comparisons[].comparable`**, derived as `bases[0] == bases[1]`, exact
+  string match, both non-null. A `comparisons[]` entry whose two `bases`
+  differ, or where either is `null`, must have `comparable: false`; the
+  checker rejects any manifest where such an entry instead has
+  `comparable: true`. This is the mechanical enforcement `## Workloads and
+  metrics`'s memory-basis requirement describes in prose: a manifest cannot
+  declare mismatched bases and mark the comparison usable at the same time,
+  because the checker, not the harness, has the final word on the boolean.
+- **`correctness_gates.stop_reason_valid`**, derived as membership: `true`
+  exactly when `stop_reason` appears in the matching `backends[].id`'s
+  `completion_reason_enum`. A `stop_reason` outside that backend's declared
+  enumeration is exactly the "harness defect, not a new category to paper
+  over silently" `## Workloads and metrics` item 6 describes, and the checker
+  is what turns that sentence into a failing exit code rather than an
+  unenforced expectation: `metrics.completion_reason` is checked the same
+  way, against the same enumeration.
+- **`correctness_gates.backend_match`**, derived as
+  `observed_backend == requested_backend`, and **`.offload_match`**, derived
+  as `observed_offload == requested_offload`, both exact string match, per
+  `## Correctness gate` gate 2.
+- **`correctness_gates.gate_passed`**, derived as the conjunction of
+  `model_loaded`, `model_identity_verified`, `backend_match`,
+  `offload_match`, `stop_reason_valid`, and `output_sane`.
+
+`## Reproduction procedure` step 9 lists running these derivations as a named
+checker responsibility, not an implicit side effect a reader has to infer.
 
 ### What makes a result non-citable
 
@@ -785,43 +956,103 @@ been attempted.
    measuring an assumed identity, not a verified one.
 2. Verify the model manifest named by `ODC_BENCHMARK_MODEL_MANIFEST` exists,
    and that every entry's `sha256` matches the file on disk, before any model
-   is loaded. A mismatch aborts that model per `## Abort criteria`.
+   is loaded. A mismatch aborts that model per `## Abort criteria`. This step
+   reads every model file end to end; that is unavoidable for a checksum and
+   is exactly why `## Workloads and metrics` item 5 defines its load-time
+   metric the way it does, rather than as a claim about disk-cache state this
+   step would already have falsified.
 3. Capture `## Hardware, OS, and toolchains` and confirm thermal state is
    nominal before the first run.
-4. Build and deploy the harness using the mechanism ODC-0004 establishes:
-   `swift build --build-tests` for the target triple, repackaged into a flat
-   iOS bundle, executed through the platform's `xctest` agent via `simctl`
-   (simulator) or `devicectl` (device). This contract adds benchmark cases
-   under the same test target ODC-0004 uses, in their own subdirectory
-   (proposed: `Tests/OnDeviceCatalystTests/Benchmarks/`), rather than
-   introducing a second SwiftPM target or an Xcode project. The reason is the
-   same one ODC-0004 gives for rejecting `xcodebuild`: no new tracked project
-   file that must be kept in agreement with `Package.swift` by hand, and no
-   dependency on the Metal Toolchain component. This is a design decision,
-   not an open question, so it is stated as one.
-5. Generate the session's `execution_order[]` by randomized interleaving
+4. Build and deploy the harness. This ticket's benchmark cases live entirely
+   under a new top-level directory, `Benchmarks/`, as their own SwiftPM test
+   target (for example `OnDeviceCatalystBenchmarks`), added to `Package.swift`
+   by whichever ticket first executes this contract; not this spec, and not
+   `Tests/OnDeviceCatalystTests/`, which stays exclusively ODC-0004's per
+   `## Question and allowed claim`. Build and deploy follow the same pattern
+   ODC-0004 documents for its own target: `swift build --build-tests` for the
+   target triple, repackaged into a flat iOS bundle, executed through the
+   platform's `xctest` agent via `simctl` (simulator) or `devicectl` (device),
+   pointed at `OnDeviceCatalystBenchmarks` instead of `OnDeviceCatalystTests`.
+   A second `.testTarget` entry in the same, single `Package.swift` is not
+   the "second build system" ODC-0004 rejects `xcodebuild` to avoid; it
+   introduces no new tracked project file that must be kept in agreement with
+   `Package.swift` by hand (there is only ever one `Package.swift`, and it
+   already lists both targets) and no dependency on the Metal Toolchain
+   component. This is a design decision, not an open question, so it is
+   stated as one.
+5. Run the harness's own self-tests before trusting any of its output; see
+   `## Harness self-tests`. A self-test failure aborts the session before any
+   arm runs, per `## Abort criteria`'s "harness's own build or deploy step
+   fails" row, because a checker or runner that cannot pass its own tests has
+   no claim on any number it would go on to produce.
+6. Generate the session's `execution_order[]` by randomized interleaving
    across every arm, then execute one warmup repetition per arm (discarded,
    still gated), then timed repetitions per `## Warmup, repetitions, and
    statistical method` until each metric reaches its required `n` or its
    variance-escalation cap.
-6. Evaluate `## Correctness gate` live, per run. A failing run is recorded in
+7. Evaluate `## Correctness gate` live, per run. A failing run is recorded in
    `gate_failures[]` with `metrics: null`; it is never retried silently in
    place of the recorded failure.
-7. Compute `aggregates[]` and `comparisons[]` once every arm's repetitions are
+8. Compute `aggregates[]` and `comparisons[]` once every arm's repetitions are
    complete or aborted.
-8. Render the human report from the manifest, following ODC-0002's
+9. Render the human report from the manifest, following ODC-0002's
    correspondence convention: the report must contain, as literal substrings,
    every `backends[].resolved_revision`, `models[].sha256`,
    `aggregates[].median` paired with its metric and arm, and every
    `comparisons[].comparable` paired with its reason.
-9. Run the checker (`scripts/check-benchmark.py`, to be built by whichever
-   ticket first executes this contract) against both deliverables. Its exit
-   code is the gate.
+10. Run the checker (`scripts/check-benchmark.py`, to be built by whichever
+    ticket first executes this contract) against both deliverables. Its exit
+    code is the gate. The checker's responsibilities include, and are not
+    limited to, every derivation named in `### Fields the checker computes,
+    never accepts as authored`: recomputing `comparisons[].comparable` from
+    `bases` and rejecting any manifest where the authored value disagrees;
+    validating `metrics.completion_reason` and `correctness_gates.stop_reason`
+    against the matching `backends[].completion_reason_enum`; and recomputing
+    `correctness_gates.backend_match`, `.offload_match`, and `.gate_passed`.
 
 No step of this procedure downloads model weights into the repository, writes
 build products inside the working tree, or leaves the tree dirty; a session
 that leaves `git status --porcelain` non-empty has not conformed to this
 contract regardless of what its numbers say.
+
+## Harness self-tests
+
+`## Validation evidence` is explicit that no execution surface has ever run
+inference with either backend under this project. That is a statement about
+model inference, not about this contract's own logic, and ODC-0004 has
+already shown the iOS Simulator stub runs code deterministically today,
+returning null or zero without trapping, for every call. That is a cheap,
+already-available way to verify this contract's harness and checker are
+correct before any scarce device time is spent debugging the harness itself
+rather than measuring anything, and this contract requires it rather than
+leaving it optional, mirroring ODC-0004's own convention for
+`scripts/test-run-characterization.sh` and
+`scripts/test-check-characterization.py`.
+
+Two self-test deliverables, both additive under `scripts/**`, both built by
+whichever ticket first executes this contract, alongside
+`scripts/check-benchmark.py`:
+
+- **`scripts/test-check-benchmark.py`.** Unit tests for the checker, runnable
+  with no device, no simulator, and no model asset: schema validation against
+  hand-constructed fixture manifests (a valid manifest, an empty object per
+  A3, a manifest with `comparisons[].comparable: true` and mismatched `bases`
+  per `### Fields the checker computes, never accepts as authored`, a
+  `stop_reason` outside its backend's `completion_reason_enum`, a `stdev`
+  below `cv_absolute_floor` paired with a CV over `0.15`), asserting the
+  checker accepts the valid fixture and rejects each broken one with the
+  specific reason named, not merely a non-zero exit.
+- **A stub-based smoke test of `## Correctness gate`.** Using the iOS
+  Simulator llama.cpp stub ODC-0004 N2/N3 already characterizes as
+  deterministic, build and run a single minimal benchmark case against it and
+  assert `## Correctness gate` gate 1 correctly fails
+  (`model_loaded: false` or `model_identity_verified: false`, because the
+  stub performs no real load) rather than passing or hanging. This is a
+  CI-runnable regression test of the harness's own gate logic, independent of
+  `## Open questions` Q1 and Q2 closing: it proves the gate rejects a known
+  non-answer before either question is ever resolved, and a future change
+  that silently weakens gate 1 breaks this test immediately rather than
+  surfacing only when a real model is finally available.
 
 ## Acceptance criteria
 
@@ -837,13 +1068,57 @@ whether a number exists. Every criterion names a deciding command.
 | A4 | Every metric in `## Workloads and metrics` has a corresponding required field in `runs[].metrics` | manual cross-check enforced by `scripts/check-benchmark.py --schema-coverage` once the checker exists |
 | A5 | Every fairness control in `## Confounders and fairness controls` has a corresponding manifest field or checker rule | `scripts/check-benchmark.py --fairness-coverage` |
 | A6 | No em dash appears in this document | `python3 -c "import sys; sys.exit(1 if chr(0x2014) in open('docs/specs/ODC-0003-benchmark-contract.md').read() else 0)"` exits `0` |
-| A7 | No confidential research term appears in this document outside this row's own description of the check | `grep -Ein "jetsam|phys_footprint|resident_size|ceiling escape|victim.rank|os_proc_available_memory" docs/specs/ODC-0003-benchmark-contract.md \| grep -v '| A7 |'` outputs nothing |
-| A8 | This ticket changes no runtime, test, or project-ledger file | `git diff --stat 7b5d847 -- Sources Tests Package.swift Package.resolved OnDeviceCatalyst OnDeviceCatalyst.xcodeproj Tickets.md ROADMAP.md` is empty |
+| A7 | No confidential research term appears in this document outside this row's own description of the check | fenced command block immediately below, "A7 deciding command" |
+| A8 | This ticket changes no runtime or test source, and touches only its own row in `Tickets.md` | fenced command block immediately below, "A8 deciding command" |
 | A9 | Project state is consistent | `python3 scripts/validate-project-state.py` |
+| A10 | The harness commits to self-testing itself, per `## Harness self-tests` | not yet satisfiable: `python3 scripts/test-check-benchmark.py` once the checker and its self-tests are built, mirroring A4/A5's status |
 
 Deliberately absent, with reasons: **any criterion asserting a benchmark ran,
 passed a gate, or produced a number.** None did. `## Validation evidence`
 states this rather than a criterion softening it away.
+
+**A7 deciding command.** Presented as a fenced block rather than embedded in
+a table cell, because the command itself contains a shell pipe, and a
+markdown-table cell cannot hold a literal `|` without escaping it, which the
+previous revision of this row did with `\|`, a backslash-escaped literal
+character, not a working pipe. A reader copying that escaped form got a
+`grep` invocation fed nonexistent filenames, not the self-exclusion the row
+described. This form has no table cell to escape around:
+
+```bash
+grep -Ein "jetsam|phys_footprint|resident_size|ceiling escape|victim.rank|os_proc_available_memory" docs/specs/ODC-0003-benchmark-contract.md | grep -v '| A7 |'
+```
+
+Outputs nothing when this row's own description of the check (naming the
+denylist terms so the check itself is auditable) is the only place any of
+those terms appear.
+
+**A8 deciding command.** The original row anchored this check to a fixed
+historical revision, `7b5d847`. That is the wrong kind of anchor for "did
+this repair round touch anything it shouldn't": other tickets' rows in
+`Tickets.md` change legitimately and often, for reasons that have nothing to
+do with this ticket, and a diff against a fixed past commit accumulates every
+one of those unrelated changes forever, so the check would eventually fail
+for a reason this ticket did not cause, the same class of self-contradiction
+this finding was raised to fix. This revision anchors to `HEAD` instead,
+which names whatever this working tree's last commit is at the moment the
+criterion is checked, immediately before this ticket's own changes are
+committed. That is exactly the question this criterion asks: are there
+uncommitted changes to a disallowed path staged or unstaged right now. The
+check has two parts: no diff at all under runtime or test paths, and,
+separately, a `Tickets.md` diff that touches only the `ODC-0003` row, because
+the ordinary act of advancing this ticket necessarily changes that row and a
+path-level check alone cannot tell "this ticket's own row changed" from
+"some other ticket's row changed in the same window":
+
+```bash
+git diff --stat HEAD -- Sources Tests Package.swift Package.resolved OnDeviceCatalyst OnDeviceCatalyst.xcodeproj
+git diff HEAD -- Tickets.md | grep -E '^[+-]' | grep -v '^+++' | grep -v '^---' | grep -v 'ODC-0003'
+```
+
+Both must produce no output. Run this once, right before committing this
+ticket's own changes; it is not meant to be replayed later against a moving
+history the way a fixed-revision diff would be.
 
 ## Review record
 
@@ -854,10 +1129,34 @@ states this rather than a criterion softening it away.
   solely to avoid designing a memory metric around a measurement approach
   already known privately to be unreliable. No file under `.context/research/`
   was modified. No hypothesis, finding, measured value, or private reasoning
-  chain from either document is reproduced in this spec; `## Question and
-  allowed claim` states the boundary this draft was held to.
-- Review pass one, completeness: pending.
-- Review pass two, adversarial: pending.
+  chain from either document is reproduced in this spec. What the private
+  review did inform, precisely, so this claim is not only about what was
+  copied but about what was structural: `## Workloads and metrics`'s
+  memory-basis requirement (always declare a basis, report bases side by
+  side, never silently merge, mark non-comparable explicitly) takes its
+  *shape* from the private methodology's own discipline for cross-runtime
+  measurement, even though its stated reason here is given independently, in
+  general terms, and no private finding, number, or hypothesis name appears.
+  `## Question and allowed claim` states the content boundary this draft was
+  held to; this sentence states the structural one.
+- 2026-09-02, pass two, adversarial spec review, verdict REJECT, returned to
+  `REVISION`. Artifact:
+  [`docs/reviews/ODC-0003-review-pass-2.md`](../reviews/ODC-0003-review-pass-2.md).
+  Six blocking findings, five major, one minor.
+- 2026-09-02, revision: this rewrite. Blocking findings 1 through 6 are
+  resolved at `## Workloads and metrics` item 5 (cold-load renamed to
+  first-load-in-process, disk-cache claim withdrawn), item 6 and `### Fields
+  the checker computes, never accepts as authored` (`completion_reason_enum`
+  and its checker-side enforcement), the same subsection (`comparisons[].
+  comparable` derivation), `## Acceptance criteria`'s A7 and A8 fenced
+  deciding commands, and `## Question and allowed claim` plus `##
+  Reproduction procedure` step 4 (the `Benchmarks/` directory boundary with
+  ODC-0004). Majors are resolved at `## Prior art and freshness date` (the
+  soft ODC-0004 dependency, stated explicitly), `## Warmup, repetitions, and
+  statistical method` (the precision target, the bias-corrected bootstrap,
+  and the CV absolute floor), `## Workloads and metrics` item 1
+  (`ttft_start_hook`), and `## Harness self-tests` (new section). The minor
+  finding is resolved by this record's second bullet above.
 - Founder review: pending. `founder_approved` is `pending` and this spec
   carries open questions, so it cannot enter an approved status until both
   close.

@@ -2,14 +2,14 @@
 id: ODC-0004
 title: V2 characterization suite
 type: test
-status: REVISION
+status: APPROVED
 milestone: P0
 owner: unassigned
 dependencies: ODC-0002
-founder_approved: pending
+founder_approved: delegated-to-manager-2026-09-01
 last_updated: 2026-09-02
 evidence_fresh_until: 2026-09-15
-unresolved_questions: Q1 physical-device surface availability, Q2 Metal reachability under Xcode-built consumers, Q3 device-execution mechanism (signing, provisioning, deployment) unspecified
+unresolved_questions: none
 ---
 
 # ODC-0004: V2 characterization suite

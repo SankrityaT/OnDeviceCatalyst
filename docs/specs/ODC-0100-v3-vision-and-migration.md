@@ -107,10 +107,11 @@ constrains what ODC-0103 must produce.
   backend** (hardware-gated within itself per `docs/specs/ODC-0005-apple-platform-design-brief.md`
   `## Architecture and data flow`, repaired by ODC-0014 before it is a v3
   product at all), and **Apple system-model backend** (ODC-0207, 26.0+ only):
-  each is an independently resolvable optional product. Each depends on core
-  contracts and the execution-policy layer's backend-conformance protocol, and
-  on nothing else in this list. None of these four modules depends on any
-  other of the four.
+  each is an independently resolvable optional product, gated behind its own
+  SwiftPM trait (per "Dependency-graph optionality" below), disabled by
+  default. Each depends on core contracts and the execution-policy layer's
+  backend-conformance protocol, and on nothing else in this list. None of
+  these four modules depends on any other of the four.
 - **Apple custom-provider adapter** (post-GA, not started before iOS 27
   general availability per ADR-0004 point 5, tracked under ODC-0023): an
   additive adapter over one existing backend module, reachable through Apple's
@@ -142,9 +143,9 @@ Core contracts (ODC-0102)
    |  |  |          ^
    |  |  |          | (backend-conformance protocol, edge points inward)
    |  |  |          |
-   |  +--+----------+-- llama.cpp backend (ODC-0200) [optional product]
+   |  +--+----------+-- llama.cpp backend (ODC-0200) [trait LlamaCPPBackend, off by default]
    |     |
-   |     +-------------- MLX backend (ODC-0201) [optional product, physical-device only]
+   |     +-------------- MLX backend (ODC-0201) [trait MLXBackend, off by default, physical-device only]
    |
    +---------------------- Metal backend [optional product, gated on ODC-0014 repair]
    +---------------------- Apple system-model backend (ODC-0207) [optional product, 26.0+]
@@ -152,14 +153,96 @@ Core contracts (ODC-0102)
                                 +-- Apple custom-provider adapter [optional, post-GA, ODC-0023]
 ```
 
-**Compile-time consequence, stated concretely:** an application that depends
-only on core contracts, the execution-policy layer, and the Apple
-system-model backend product must resolve and compile with zero references to
-the llama.cpp XCFramework or to `mlx-swift`/`mlx-swift-lm`. This is the SwiftPM
-target-level test of `docs/ARCHITECTURE.md`'s "heavy backend dependencies do
-not resolve for core-only consumers," and ODC-0103's manifest is APPROVED only
-if `swift package show-dependencies` for that consumer configuration lists
-neither dependency.
+**Dependency-graph optionality is not automatic, and this document commits to
+the mechanism that delivers it.** `swift package show-dependencies` reports
+the package graph resolved from a manifest's `dependencies:` array; that
+resolution happens once per manifest, independent of which product a
+downstream consumer selects. Selecting a library product changes what `swift
+build` compiles and links; it does not change what SwiftPM resolves and
+reports. Today's manifest confirms this is not hypothetical: `Package.swift:1`
+declares `// swift-tools-version: 5.12`, and `Package.swift:28-31` declares
+`mlx-swift-lm` as an unconditional dependency of the single existing target.
+A consumer who selected only a hypothetical core-only product from that same
+manifest, unchanged, would still see `mlx-swift-lm` (and, once added,
+llama.cpp) in `swift package show-dependencies`, because both are resolved for
+the whole manifest, not per selected product. Stating optionality as an
+already-secured fact of "optional products" alone, as an earlier draft of this
+section did, is false under SwiftPM's real resolution semantics, and this
+document does not repeat that claim.
+
+This document commits ODC-0103 to closing the gap with **SwiftPM Package
+Traits (SE-0450, "Package traits", status Implemented, Swift 6.1)**, not to a
+multi-package split and not to weakening the claim to a build/link-only check.
+
+**Precision required here, because the mechanism is narrower than "traits make
+dependencies optional" suggests.** SwiftPM has two distinct steps, and traits
+affect only the second:
+
+1. **Version pinning**, which produces `Package.resolved`. SE-0450's own Future
+   Directions section states the implementation considers traits only *after*
+   this step. Pruning at the fetch and pin level is explicitly not yet
+   implemented; SwiftPM carries it behind an off-by-default
+   `--experimental-prune-unused-dependencies` flag. **A trait-disabled
+   dependency is still fetched and still appears in `Package.resolved`.**
+2. **Module-graph construction**, which is what `swift package show-dependencies`
+   reads. This step *is* trait-filtered: a package reachable only through
+   trait-guarded target-dependency edges that are disabled never enters the
+   graph.
+
+The gate below depends on step 2 and is therefore sound. Any claim that a
+trait-disabled dependency is not fetched, or is absent from `Package.resolved`,
+would depend on step 1 and would be false today. Do not make it. The reasoning for that choice is in `##
+Alternatives considered`; the consequence for ODC-0103 is:
+
+- ODC-0103 raises the manifest's declared tools version from `5.12` to `6.1`.
+  **The consumer cost is concrete and must be stated in release notes:** Swift
+  6.1 shipped 2025-03-31 in Xcode 16.3, so a consumer on Xcode 16.2 or earlier
+  cannot resolve the manifest at all. This is a toolchain floor, entirely
+  separate from the iOS 17 / macOS 14 deployment floor, which is unchanged.
+  Note also that `5.12` is not a shipped Swift release; SwiftPM's own
+  `ToolsVersion` constants jump from `.v5_10` to `.v6_0`, so the current value
+  is itself invalid and the migration is a correction, not only an upgrade
+  (the first tools version with trait support), and declares a named trait per
+  heavy backend, for example `LlamaCPPBackend` and `MLXBackend`, with the
+  llama.cpp binary target's dependency edge and the `mlx-swift-lm` package
+  dependency each conditioned on its trait. No trait is enabled by default, so
+  a consumer who declares no trait requirement gets neither dependency
+  resolved.
+- **The tools-version floor this imposes is a toolchain requirement, not a
+  deployment-target requirement, and the two must not be conflated.** A
+  manifest's `// swift-tools-version:` line states the minimum SwiftPM/Xcode
+  toolchain a consumer must use to resolve and build the manifest at all,
+  regardless of target OS. The manifest's separate `platforms:` array (`##
+  Compatibility policy`) states the minimum OS version the compiled binary can
+  run on. Raising tools-version to `6.1` means every consumer, including one
+  who selects only core contracts, must resolve this package with a Swift 6.1
+  or later toolchain; it does not raise, lower, or otherwise touch the iOS
+  17 / macOS 14 deployment floor, which remains declared in `platforms:`
+  exactly as `## Compatibility policy` states. A consumer building with a
+  Swift 6.1 toolchain can still ship a binary whose minimum OS is iOS 17;
+  those are independent axes. This document does not name the specific first
+  Xcode release shipping Swift tools version 6.1, since verifying that number
+  requires a toolchain check outside this document's read-only, no-build
+  drafting constraints; ODC-0103's own spec must state it before ODC-0103 is
+  approved.
+- **The revised, checkable gate:** ODC-0103's manifest is APPROVED only if,
+  for a trait selection that enables no backend trait (what a consumer gets by
+  declaring no trait preference), `swift package show-dependencies` lists
+  neither the llama.cpp binary target's backing reference nor `mlx-swift-lm`,
+  and, separately, enabling only `LlamaCPPBackend` or only `MLXBackend` causes
+  exactly that one dependency to appear. This gate is conditioned on trait
+  selection, which SwiftPM filters at the module-graph level, rather than on
+  product selection alone, which it does not filter at all. It is testable once
+  ODC-0103's manifest declares the traits, using the real flags
+  `--disable-default-traits`, `--traits <comma-list>` and `--enable-all-traits`.
+  These are accepted by `show-dependencies` through the shared global option
+  group even though they do not appear in that subcommand's own `--help`, so
+  ODC-0103 must verify the flags behave as expected on the toolchain in use
+  rather than assuming them from the help text.
+
+  **This gate does not and must not assert anything about `Package.resolved`.**
+  Trait-disabled dependencies are still fetched and pinned. See the two-step
+  distinction above.
 
 ## Compatibility policy
 
@@ -167,6 +250,15 @@ ADR-0004 decision point 1 holds the core package's deployment target at iOS 17
 / macOS 14. ADR-0004's own `## Consequences` states the commitment this
 creates without softening it: "the iOS 17-25 compatibility promise becomes a
 load-bearing product commitment and must be tested, not merely declared."
+
+**This is a deployment-target floor, not a tools-version floor, and `##
+Package boundaries`'s Package Traits adoption changes only the latter.** The
+`platforms:` array in `Package.swift` states the deployment floor named above;
+the `// swift-tools-version:` line states the SwiftPM/Xcode toolchain a
+consumer must resolve the manifest with. ODC-0103 raising tools-version to
+`6.1` to gain trait support changes which toolchain can open this package at
+all; it does not raise the iOS 17 / macOS 14 deployment floor stated here, and
+this document treats the two as independent commitments throughout.
 
 **What the declared floor commits the project to:**
 
@@ -242,6 +334,51 @@ R5 is the one requirement this spec cannot mark architecturally complete: its
 owning module's implementation can be designed now, but the requirement itself
 is defined as untested until ODC-0021 exists, and this spec does not weaken
 that definition to make the row look done.
+
+**Internal seams inside the execution-policy layer:** `## Package boundaries`
+names the layer's five responsibilities (device-aware backend selection,
+memory budgeting and eviction, lifecycle and backgrounding, cancellation
+propagation, performance reporting) and the table above routes all six
+requirements through the single ticket ODC-0101. That is correct ownership but
+not yet an architecture ODC-0101 can be scoped against; this subsection draws
+the seam. The layer is not one undifferentiated type. It decomposes into four
+named sub-components, each a distinct actor or protocol conformance inside the
+ODC-0101 target, and each owning a disjoint subset of R1-R6:
+
+- **Backend Selector** (`BackendSelecting`): device-aware backend selection.
+  Given a device class and a set of compiled-in, trait-enabled backends, it
+  narrows the candidate set before admission is consulted. It owns no
+  requirement row directly; it is the Admission Controller's first input.
+- **Admission Controller** (`AdmissionDeciding`): owns R3 and R4. Consults the
+  Backend Selector's candidate set and the compatibility artifact
+  (ODC-0104/ODC-0205) to decide load-or-refuse, and raises the typed
+  admission-failure error before any backend allocation call. This is the
+  data-shape-heavy half of the layer the review asked to be separated out.
+- **Memory Reporter** (`MemoryReporting`): owns R1, R2, and R6. Attaches a
+  mandatory `basis` field to every measured figure, derives the comparability
+  flag from two figures' bases rather than accepting it as authored, and
+  refuses to construct a performance-report value without an accompanying
+  peak-memory figure. This is the other half of the data-shape-heavy concern,
+  separate from the Admission Controller because it has no load-or-refuse
+  decision to make, only figures to attach and compare.
+- **Lifecycle Controller** (`LifecycleManaging`): owns R5 and the memory
+  budgeting/eviction and cancellation-propagation responsibilities named in
+  `## Package boundaries`. It owns actor-scoped instance state (the D1/D8
+  replacement for v2's unsafe cache), backgrounding and foregrounding
+  transitions, cancellation that reaches backend work, and repeated
+  load/unload cycles. This is the behavior-heavy concern the review asked to
+  be separated from the data-shape-heavy pair above; it is validated on the
+  device surface ODC-0021 owns, per R5's row.
+
+The Backend Selector and Admission Controller both consult data the Memory
+Reporter produces (a memory-figure value type with a declared basis), so the
+dependency edge runs Memory Reporter to Admission Controller to Backend
+Selector, never the reverse; the Lifecycle Controller depends on the Admission
+Controller's decision (nothing loads without admission) but nothing depends on
+the Lifecycle Controller. Whether these four become four Swift types, four
+actors, or four protocol conformances on fewer types is ODC-0101's own
+implementation decision; this document's commitment is the seam and the
+requirement-to-component mapping, not the concrete type count.
 
 ## Migration from v2
 
@@ -332,6 +469,48 @@ reachability a property `swift package show-dependencies` and the build
 matrix in `## Compatibility policy` can check mechanically, not a claim in a
 source comment.
 
+**The v2 public API surface beyond the eight characterized defects:** D1
+through D8 do not cover all of v2's public surface, and a v2 consumer using
+any of the following needs a named destination, not silence:
+
+- **Tool calling** (`CatalystTool`, `CatalystToolCall`, `ToolCallParser`,
+  `ToolPromptFormatter`, `Sources/OnDeviceCatalyst/Tools/ToolSupport.swift`):
+  destination is **ODC-0203** (structured generation and tools), already
+  listed in `Tickets.md` depending on ODC-0202. A v2 consumer parsing tool
+  calls from raw model output migrates to ODC-0203's structured tool-call
+  contract once it lands; this spec does not restate ODC-0203's own interface,
+  only its ownership.
+- **Session/state persistence** (`StatePersistence`,
+  `Sources/OnDeviceCatalyst/Core Engine/StatePersistence.swift`) and **content
+  safety** (`SafetyManager`,
+  `Sources/OnDeviceCatalyst/Core Foundation/SafetyManager.swift`): neither has
+  an owning ticket in `Tickets.md` today. This spec proposes one new ledger
+  row for the manager to add: `ODC-0208 | runtime | Session state persistence
+  and safety guards | P2 | BACKLOG | P2 | ODC-0101, ODC-0102 | TBD | TBD |
+  unassigned | 2026-09-06 | dependency approval`, depending on ODC-0101 (the
+  Lifecycle Controller owns the actor-scoped state a persisted snapshot must
+  be taken from and restored into) and ODC-0102 (the value types a snapshot
+  serializes). `SafetyManager`'s memory-percentage heuristic
+  (`isMemoryUsageSafe()`) is additionally superseded in function, not just
+  relocated: its role is subsumed by R1/R2's basis-tracked memory reporting
+  and R3/R4's admission decision, both owned by ODC-0101/ODC-0102 already, so
+  ODC-0208's safety-guard scope is what remains after that subsumption
+  (request-shape guards, not memory-admission logic).
+- **Model download identity** (`CatalystModel`, `ModelDownloader`,
+  `Sources/OnDeviceCatalyst/Service Layer/ModelDownloader.swift`): destination
+  is **Model identity and asset lifecycle (ODC-0104, ODC-0205)**, already
+  named as the owning module in `## Package boundaries` above but not
+  previously connected to this concrete v2 type pair. A v2 consumer calling
+  `ModelDownloader.shared.ensure(_:)` migrates to ODC-0205's asset-lifecycle
+  API; `CatalystModel`'s enum-of-known-models shape does not carry forward
+  as-is, consistent with `## Migration from v2`'s general rule that no v2 type
+  signature survives unchanged.
+- **Embeddings**: `ODC-0204` (single and batch embeddings) already owns this
+  surface per `Tickets.md`, depending on ODC-0200/ODC-0201; the two embedding
+  presets in `CatalystModel` (`nomicEmbedV1_5`, `gteQwen2_1_5B`) migrate to
+  whatever model-identity mechanism ODC-0204 and ODC-0104/ODC-0205 define
+  together, not to `CatalystModel` itself.
+
 **What carries forward, concretely:** the four-layer shape in
 `docs/ARCHITECTURE.md`'s current diagram (application, facade, backend
 instances, supporting services) survives as a concept: a facade-like Core
@@ -350,8 +529,12 @@ second terminal completion is safe to ignore (D2) or that a success-path
 `.ready` progress event ever arrives (D3); stop selecting `.metal` as a
 backend until ODC-0014 lands (D5); stop building against `.macOS(.v14)` with
 the llama backend selected until ODC-0103's per-backend platform floors land
-(D4); and replace any direct use of `Catalyst`'s instance cache with the
-lifecycle API ODC-0101 defines (D1, D8). None of these changes is optional
+(D4); replace any direct use of `Catalyst`'s instance cache with the
+lifecycle API ODC-0101 defines (D1, D8); replace direct `ToolSupport.swift`
+parsing with ODC-0203's structured contract once it lands; replace
+`StatePersistence`/`SafetyManager` usage with ODC-0208's successor once
+allocated; and replace `ModelDownloader`/`CatalystModel` usage with
+ODC-0104/ODC-0205's asset-lifecycle API. None of these changes is optional
 for a consumer that wants the behavior the v2 API surface currently claims but
 does not provide.
 
@@ -448,19 +631,55 @@ must be true first, without asserting this spec's own review outcome.
    adapter under **ODC-0023** (blocked on iOS 27 general availability, per
    ADR-0004 point 5) follow once ODC-0102's backend-conformance protocol
    exists; neither is on the critical path for ODC-0101 through ODC-0202.
+9. **ODC-0203 (structured generation and tools)** and **ODC-0204 (single and
+   batch embeddings)**, depending on ODC-0202 and on ODC-0200/ODC-0201
+   respectively per `Tickets.md`, own the tool-calling and embeddings surface
+   named in `## Migration from v2`'s v2-surface-beyond-D1-D8 subsection. Both
+   follow ODC-0202, consistent with `Tickets.md`'s own dependency column.
+10. **ODC-0208 (session state persistence and safety guards)**, proposed in
+    `## Migration from v2` and not yet a `Tickets.md` row, would depend on
+    ODC-0101 and ODC-0102 and follow both, for the same reason ODC-0203 and
+    ODC-0204 follow ODC-0202: it consumes interfaces those tickets define
+    rather than defining new ones of its own.
 
 **What ODC-0021 blocks, named explicitly:** `docs/requirements/memory-and-admission.md`
 states R5 "is currently blocked on ODC-0021, which owns establishing that
 device surface," and `Tickets.md` records the same block on ODC-0003
 ("implementation, blocked on ODC-0021 execution surface") and on ODC-0004
-("5 R3 cases inert pending ODC-0021"). This spec carries that block forward
-without exception: the interfaces this spec assigns to R3, R4, and R5 in `##
-Requirement ownership` can be designed and implemented by ODC-0101/ODC-0102
-without ODC-0021, but no claim that R3's admission decisions or R5's lifecycle
-behavior actually hold on real hardware may be documented until ODC-0021
-exists and ODC-0302/ODC-0303 execute against it. Any ticket whose acceptance
-criteria require device evidence, not just an implemented interface, is
-blocked on ODC-0021 regardless of its position in the dependency chain above.
+("5 R3 cases inert pending ODC-0021" -- ODC-0004's own device-execution tier,
+also labeled `R3` in that document's vocabulary, distinct from this document's
+requirement `R3` above; the two share a label by coincidence of both documents
+independently numbering their own tiers, not by shared meaning). This spec
+carries that block forward without exception: the interfaces this spec assigns
+to requirement R3, R4, and R5 in `## Requirement ownership` can be designed
+and implemented by ODC-0101/ODC-0102 without ODC-0021, but no claim that
+requirement R3's admission decisions or R5's lifecycle behavior actually hold
+on real hardware may be documented until ODC-0021 exists and ODC-0302/ODC-0303
+execute against it. Any ticket whose acceptance criteria require device
+evidence, not just an implemented interface, is blocked on ODC-0021 regardless
+of its position in the dependency chain above.
+
+**The contingency if ODC-0021 never delivers a device surface:** this is not
+hypothetical risk-listing; it is a named consequence. If ODC-0021 cannot
+establish a real-device execution surface at all (for example if signing,
+provisioning, or physical hardware access proves permanently unavailable to
+this project), then requirement R5 and the device-evidence half of
+requirement R3 remain permanently unsatisfied, not merely delayed, and that
+fact must be disclosed in any release built on this architecture rather than
+silently omitted. Concretely: the Lifecycle Controller and Admission
+Controller (see `## Requirement ownership`'s internal-seams subsection) can
+still be implemented, unit-tested on the simulator surface `docs/specs/ODC-0004-v2-characterization-suite.md`
+already uses, and shipped, because their interfaces do not require ODC-0021 to
+exist. What cannot happen is any documentation, release note, or compatibility
+claim stating that lifecycle behavior or admission decisions have been
+verified on real hardware; that claim converts from "not yet true" to
+"knowingly false" the moment it is written down after ODC-0021 is confirmed
+unobtainable. This spec's architecture does not change if ODC-0021 fails: the
+interfaces still satisfy R1 through R6 as designed. Only the R5 and R3
+device-evidence claims permanently downgrade from "blocked, pending" to
+"unsatisfiable, disclosed," and ODC-0304 (release and support policy) is the
+ticket that must carry that disclosure into any release built before or
+without a resolution to ODC-0021.
 
 **What must be true before implementation starts, generally:** a ticket in
 the ODC-0101 through ODC-0104 set may leave `BACKLOG` for implementation only
@@ -489,7 +708,7 @@ name as off-limits to it.
 | A8 | Package boundaries name every module and cite the constraint each satisfies | `grep -qE '^## Package boundaries' docs/specs/ODC-0100-v3-vision-and-migration.md && grep -qi 'show-dependencies' docs/specs/ODC-0100-v3-vision-and-migration.md` |
 | A9 | This ticket modifies no file outside its own spec, scoped only to the paths this ticket's own constraints name as off-limits (sibling-owned paths under `docs/specs/` for other tickets are deliberately excluded from this check, since another ticket's own spec work is not this ticket's concern) | `git diff --stat -- Sources Tests Package.swift Package.resolved Tickets.md ROADMAP.md docs/requirements .github` produces empty output |
 | A10 | Project state remains internally consistent | `python3 scripts/validate-project-state.py` exits 0 |
-| A11 | Every follow-up ticket this spec names by ID (ODC-0021, ODC-0023, ODC-0101, ODC-0102, ODC-0103, ODC-0104, ODC-0014, ODC-0200, ODC-0201, ODC-0202, ODC-0207, ODC-0300, ODC-0302, ODC-0303) exists in `Tickets.md` | `for t in ODC-0021 ODC-0023 ODC-0101 ODC-0102 ODC-0103 ODC-0104 ODC-0014 ODC-0200 ODC-0201 ODC-0202 ODC-0207 ODC-0300 ODC-0302 ODC-0303; do grep -q "$t" Tickets.md || echo "missing $t"; done` produces no output |
+| A11 | Every follow-up ticket this spec names by ID as an existing `Tickets.md` row (ODC-0021, ODC-0023, ODC-0101, ODC-0102, ODC-0103, ODC-0104, ODC-0014, ODC-0200, ODC-0201, ODC-0202, ODC-0203, ODC-0204, ODC-0207, ODC-0300, ODC-0302, ODC-0303, ODC-0304) exists in `Tickets.md`. ODC-0208 is deliberately excluded: this spec proposes it as a new row rather than asserting it already exists. | `for t in ODC-0021 ODC-0023 ODC-0101 ODC-0102 ODC-0103 ODC-0104 ODC-0014 ODC-0200 ODC-0201 ODC-0202 ODC-0203 ODC-0204 ODC-0207 ODC-0300 ODC-0302 ODC-0303 ODC-0304; do grep -q "$t" Tickets.md || echo "missing $t"; done` produces no output |
 
 ## Alternatives considered
 
@@ -525,13 +744,50 @@ name as off-limits to it.
   27.0-preview risk into the optional, not-yet-started adapter module and the
   separately scheduled ODC-0023 recheck, so the core architecture here does
   not depend on iOS 27's final shape.
+- **Split heavy backends into separate packages or repositories, each with its
+  own manifest, instead of adopting Package Traits inside one manifest.**
+  Rejected for cost, not correctness: a genuine multi-package split delivers
+  real dependency-graph optionality too, but at the cost of multi-repo release
+  coordination (versioning llama.cpp and MLX backends against a core contracts
+  package released on its own schedule) that this project's single-maintainer
+  scale does not need yet, and it would contradict the "OnDeviceCatalyst v3 is
+  a Swift package" framing in `## Vision and non-goals`. Package Traits solve
+  the identical resolution-level problem inside the one-package shape this
+  document's vision already commits to.
+- **Weaken the optionality claim to what a single-package, multiple-product
+  manifest can deliver today without adopting Traits (zero heavy-backend code
+  in the linked binary for a core-only consumer, checked at build/link time
+  instead of resolution time), and drop the `show-dependencies` gate
+  entirely.** Rejected: `docs/ARCHITECTURE.md`'s already-approved constraint
+  is that "heavy backend dependencies do not resolve for core-only consumers"
+  (`docs/ARCHITECTURE.md:41`), stated in terms of resolution, not linking.
+  Dropping to a build/link-only check would silently narrow an
+  already-approved constraint rather than satisfy it, and would leave
+  `Package.resolved` listing llama.cpp and mlx-swift-lm for every consumer
+  regardless of need, which is the exact ambiguity a developer evaluating
+  "will this dependency show up in my build" would still hit. Traits keep the
+  stronger, already-approved, resolution-level claim true instead of retreating
+  from it.
 
 ## Review record
 
-Not yet reviewed. `status: SPEC_DRAFT` and `founder_approved: pending` above
-reflect that this document has not entered `SPEC_REVIEW`. This section is
-updated by the review process, not by this draft; no reviewer, decision, or
-approval is recorded here by the author.
+This document has been reviewed once: `docs/reviews/ODC-0100-review-pass-2.md`
+(adversarial, dated 2026-09-06), verdict REJECT, returned to `REVISION`. This
+revision responds to that review's two blocking findings and four major
+findings: the SwiftPM optionality claim (`## Package boundaries`, "Dependency-
+graph optionality"), the execution-policy layer's internal seams (`##
+Requirement ownership`, "Internal seams inside the execution-policy layer"),
+the `R3` naming collision (`## Sequencing`, "What ODC-0021 blocks"), the
+migration gaps for tool calling, persistence, safety, and model-download
+identity (`## Migration from v2`, "The v2 public API surface beyond the eight
+characterized defects"), and the ODC-0021 contingency (`## Sequencing`, "The
+contingency if ODC-0021 never delivers a device surface"). The `Tickets.md`
+ledger-claim finding from that same review was corrected separately, described
+in `## Summary and user problem`. `status: REVISION` and `founder_approved:
+pending` above reflect that this revision has not yet re-entered
+`SPEC_REVIEW`. This section is updated again by the next review pass, not by
+this draft; no reviewer, decision, or approval beyond the record above is
+made by the author of this revision.
 
 ## Validation evidence
 
@@ -564,3 +820,23 @@ on disk to be linked from its ticket row regardless of status, and additionally
 forbids a spec from asserting that it does not or cannot change `Tickets.md`,
 because four pass-two reviews found that exact claim false. Both checks carry
 negative fixtures in `scripts/test-project-state-validator.py`.
+
+**Re-run for this revision (2026-09-06, responding to `docs/reviews/ODC-0100-review-pass-2.md`):**
+all eleven criteria were re-run against the revised document and passed:
+
+- A1 through A8: unchanged in mechanism, still exit 0 / produce no output
+  after the "Dependency-graph optionality," "Internal seams inside the
+  execution-policy layer," and "The v2 public API surface beyond the eight
+  characterized defects" subsections were added; the required section headers
+  and R1-R6/D1-D8 markers are unaffected by those additions.
+- A9: `git diff --stat -- Sources Tests Package.swift Package.resolved
+  Tickets.md ROADMAP.md docs/requirements .github` still produces empty
+  output; every edit in this revision is confined to this spec file.
+- A10: `python3 scripts/validate-project-state.py` still prints
+  `project state valid: 40 tickets, 8 specs, 4 ADRs` and exits 0.
+- A11: the criterion's own ticket list was extended to include ODC-0203,
+  ODC-0204, and ODC-0304, all three newly named in this revision's migration
+  and sequencing additions; `ODC-0208` (the persistence/safety ticket this
+  revision proposes) is deliberately excluded from A11's list because it does
+  not yet exist as a `Tickets.md` row, and this document does not claim
+  otherwise. The re-run command produced no output.

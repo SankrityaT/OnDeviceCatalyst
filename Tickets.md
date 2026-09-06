@@ -26,7 +26,7 @@ ticket must link to one.
 | ODC-0021 | infra | Establish a physical-device execution surface, including signing, provisioning and deployment | P0 | BACKLOG | P0 | ODC-0002 | TBD | TBD | unassigned | 2026-09-01 | discovery; absorbs ODC-0003 Q1 and ODC-0004 Q1/Q3 |
 | ODC-0022 | bug | Determine whether the MLX backend initializes on any measured surface | P0 | BACKLOG | P1 | ODC-0002 | TBD | TBD | unassigned | 2026-09-01 | discovery |
 | ODC-0023 | design | Apple platform recheck at iOS 27 general availability | P0 | BACKLOG | P0 | ODC-0005 | TBD | TBD | unassigned | 2026-09-01 | blocked on iOS 27 GA; absorbs ODC-0005 Q1-Q4 and discharges ADR-0004's mandated second landscape refresh |
-| ODC-0100 | architecture | V3 vision and migration | P1 | SPEC_DRAFT | P0 | ODC-0005 | [spec](docs/specs/ODC-0100-v3-vision-and-migration.md) | TBD | SankrityaT | 2026-09-01 | adversarial review pass |
+| ODC-0100 | architecture | V3 vision and migration | P1 | REVISION | P0 | ODC-0005 | [spec](docs/specs/ODC-0100-v3-vision-and-migration.md) | TBD | SankrityaT | 2026-09-01 | resolve 2 blocking findings, chiefly the SwiftPM optionality defect |
 | ODC-0101 | architecture | Swift 6 concurrency and lifecycle | P1 | BACKLOG | P0 | ODC-0100 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
 | ODC-0102 | api | Public inference contracts | P1 | BACKLOG | P0 | ODC-0100, ODC-0101 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |
 | ODC-0103 | packaging | Modular package graph | P1 | BACKLOG | P0 | ODC-0100, ODC-0102 | TBD | TBD | unassigned | 2026-08-25 | dependency approval |

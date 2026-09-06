@@ -2,7 +2,7 @@
 id: ODC-0100
 title: V3 vision and migration
 type: architecture
-status: SPEC_DRAFT
+status: REVISION
 milestone: P1
 owner: SankrityaT
 dependencies: ODC-0005, docs/requirements/memory-and-admission.md
@@ -22,9 +22,10 @@ requirement ownership, and migration path for OnDeviceCatalyst, per
 (governing) and `docs/requirements/memory-and-admission.md` (binding, R1
 through R6). It decomposes into the P1 architecture tickets already listed in
 `Tickets.md` (ODC-0101 through ODC-0104) and names what must be true before
-each can start implementation. It does not itself change `Package.swift`,
-`Sources/`, `Tests/`, or `Tickets.md`; those are downstream of the tickets this
-spec unblocks.
+each can start implementation. It changes no code: `Package.swift`, `Sources/`
+and `Tests/` are downstream of the tickets this spec unblocks. Its own ledger row
+was advanced and linked by the manager in commit `61aae27`, which is the normal
+workflow: specs propose ledger changes and the manager applies them.
 
 The user problem, stated once: an application developer choosing on-device
 inference today cannot get a straight answer to "will this model load on this
@@ -553,11 +554,13 @@ document at draft time and passed:
 One expectation from the task that authorized this draft did not hold: a
 missing-spec-link error for `ODC-0100` was anticipated because `Tickets.md`'s
 `ODC-0100` row still carries `TBD` in its `Spec` column. The validator did not
-raise one, because `Tickets.md` records `ODC-0100`'s status as `DISCOVERY`,
-and `scripts/validate-project-state.py` only requires a linked spec for
-tickets whose status is in `{SPEC_DRAFT, SPEC_REVIEW, REVISION, APPROVED,
-IMPLEMENTING, VALIDATING, DONE}`; `DISCOVERY` is not in that set. This is
-reported as observed rather than adjusted to match the original expectation,
-since editing `Tickets.md`'s status or spec-link field for `ODC-0100` is
-outside this spec's authority and outside the constraints it was drafted
-under.
+raise one, because at drafting time `Tickets.md` recorded `ODC-0100`'s status
+as `DISCOVERY`, and `scripts/validate-project-state.py` then only required a
+linked spec for statuses in `{SPEC_DRAFT, SPEC_REVIEW, REVISION, APPROVED,
+IMPLEMENTING, VALIDATING, DONE}`.
+
+**That gap has since been closed.** The validator now requires any spec present
+on disk to be linked from its ticket row regardless of status, and additionally
+forbids a spec from asserting that it does not or cannot change `Tickets.md`,
+because four pass-two reviews found that exact claim false. Both checks carry
+negative fixtures in `scripts/test-project-state-validator.py`.

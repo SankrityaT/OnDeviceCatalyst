@@ -41,7 +41,14 @@ APPROVED_STATUSES = {"APPROVED", "IMPLEMENTING", "VALIDATING", "DONE"}
 TICKET_PATTERN = re.compile(r"^ODC-\d{4}$")
 ADR_PATTERN = re.compile(r"^ODC-ADR-\d{4}$")
 MARKDOWN_LINK_PATTERN = re.compile(r"\]\(([^)]+)\)")
+FENCED_BLOCK_PATTERN = re.compile(r"```.*?```", re.S)
+INLINE_CODE_PATTERN = re.compile(r"`[^`\n]*`")
 SPEC_LINK_PATTERN = re.compile(r"\[spec\]\(([^)]+)\)")
+LEDGER_CLAIM_PATTERNS = (
+    re.compile(r"does not (?:and cannot )?(?:itself )?(?:edit|change|modify|mutate)[^.\n]{0,40}Tickets\.md", re.I),
+    re.compile(r"(?:cannot|will not|does not) self-apply", re.I),
+    re.compile(r"outside this spec's authority", re.I),
+)
 
 
 class ValidationError(Exception):
@@ -124,6 +131,41 @@ def validate_specs(tickets: dict[str, dict[str, str]]) -> None:
             raise ValidationError(f"duplicate spec ID {ticket_id}")
         found_specs[ticket_id] = (path, metadata)
 
+    # A spec that exists on disk must be linked from its ticket, whatever the
+    # ticket's status. Without this, a fully drafted spec can sit unlinked under
+    # BACKLOG or DISCOVERY indefinitely while this validator exits 0. Found by
+    # the ODC-0100 pass-two review.
+    for spec_ticket_id, (spec_path, _meta) in found_specs.items():
+        ticket = tickets.get(spec_ticket_id)
+        if ticket is None:
+            raise ValidationError(
+                f"{spec_path.relative_to(ROOT)}: spec exists for {spec_ticket_id} "
+                f"but that ticket is not in Tickets.md"
+            )
+        if not SPEC_LINK_PATTERN.fullmatch(ticket["spec"]):
+            raise ValidationError(
+                f"Tickets.md: {spec_ticket_id} has a spec at "
+                f"{spec_path.relative_to(ROOT)} but its row links none"
+            )
+
+    # Specs must not assert that they do not modify Tickets.md. The claim is
+    # structurally unreliable: specs propose ledger changes and the manager
+    # applies them, commonly in the commit that introduces the spec. Four
+    # separate pass-two reviews (ODC-0004, ODC-0005, ODC-0100) found this exact
+    # claim false. Forbidding the sentence is more effective than remembering to
+    # keep it true.
+    for spec_ticket_id, (spec_path, _meta) in found_specs.items():
+        body = spec_path.read_text(encoding="utf-8")
+        for pattern in LEDGER_CLAIM_PATTERNS:
+            hit = pattern.search(body)
+            if hit:
+                raise ValidationError(
+                    f"{spec_path.relative_to(ROOT)}: forbidden claim about "
+                    f"Tickets.md ({hit.group(0)[:60]!r}). A spec may state which "
+                    f"ledger rows it proposes, but must not assert that it does "
+                    f"not or cannot change Tickets.md."
+                )
+
     for ticket_id, ticket in tickets.items():
         match = SPEC_LINK_PATTERN.fullmatch(ticket["spec"])
         if ticket["status"] in SPEC_REQUIRED_STATUSES and not match:
@@ -205,11 +247,18 @@ def validate_markdown_links() -> None:
     ]
     for path in paths:
         text = path.read_text(encoding="utf-8")
-        if "—" in text:
+        if "\u2014" in text:
             raise ValidationError(
                 f"{path.relative_to(ROOT)}: em dash violates repository writing style"
             )
-        for raw_target in MARKDOWN_LINK_PATTERN.findall(text):
+        # Strip fenced blocks and inline code spans before looking for links.
+        # Documents legitimately quote ledger cells such as
+        # `[spec](docs/specs/....md)` as code, and those are not links to
+        # resolve. Without this, quoting a Tickets.md row fails validation,
+        # which surfaced on the ODC-0100 pass-two review.
+        linkable = FENCED_BLOCK_PATTERN.sub("", text)
+        linkable = INLINE_CODE_PATTERN.sub("", linkable)
+        for raw_target in MARKDOWN_LINK_PATTERN.findall(linkable):
             target = raw_target.strip().strip("<>")
             if target.startswith(("http://", "https://", "mailto:", "#")):
                 continue

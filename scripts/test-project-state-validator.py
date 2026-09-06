@@ -54,6 +54,26 @@ def replace(path: Path, old: str, new: str) -> None:
     path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
 
+def replace_in_row(path: Path, ticket_id: str, old_field: str, new_field: str) -> None:
+    """Mutate one field of one ticket row without pinning the rest of the row.
+
+    Fixtures that hardcode a whole ledger row break every time the workflow
+    advances that ticket, which is exactly the brittleness pass-two reviews keep
+    finding in acceptance criteria. Anchor on the ticket ID instead.
+    """
+    lines = path.read_text(encoding="utf-8").split("\n")
+    for index, line in enumerate(lines):
+        if line.startswith(f"| {ticket_id} |"):
+            if old_field not in line:
+                raise AssertionError(
+                    f"field {old_field!r} not present in {ticket_id} row"
+                )
+            lines[index] = line.replace(old_field, new_field, 1)
+            path.write_text("\n".join(lines), encoding="utf-8")
+            return
+    raise AssertionError(f"ticket row not found: {ticket_id}")
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory(prefix="odc-project-state-") as raw:
         fixture = Path(raw)
@@ -66,8 +86,37 @@ def main() -> int:
         "ticket and spec status mismatch",
         lambda root: replace(
             root / "docs" / "specs" / "ODC-0002-v2-baseline.md",
-            "status: SPEC_REVIEW",
+            "status: DONE",
             "status: SPEC_DRAFT",
+        ),
+    )
+    expect_failure(
+        "spec exists on disk but its ticket row links none",
+        lambda root: replace_in_row(
+            root / "Tickets.md",
+            "ODC-0005",
+            "[spec](docs/specs/ODC-0005-apple-platform-design-brief.md)",
+            "TBD",
+        ),
+    )
+    expect_failure(
+        "spec asserts it does not change Tickets.md",
+        lambda root: (root / "docs" / "specs" / "ODC-0002-v2-baseline.md").write_text(
+            (root / "docs" / "specs" / "ODC-0002-v2-baseline.md").read_text(
+                encoding="utf-8"
+            )
+            + "\n\nThis spec does not edit Tickets.md.\n",
+            encoding="utf-8",
+        ),
+    )
+    expect_failure(
+        "spec asserts a ledger change cannot self-apply",
+        lambda root: (root / "docs" / "specs" / "ODC-0002-v2-baseline.md").write_text(
+            (root / "docs" / "specs" / "ODC-0002-v2-baseline.md").read_text(
+                encoding="utf-8"
+            )
+            + "\n\nThe proposed title correction cannot self-apply.\n",
+            encoding="utf-8",
         ),
     )
     expect_failure(
@@ -88,10 +137,8 @@ def main() -> int:
     )
     expect_failure(
         "unknown public dependency",
-        lambda root: replace(
-            root / "Tickets.md",
-            "| ODC-0003 | benchmark | Cross-backend benchmark contract | P0 | BACKLOG | P0 | ODC-0002 |",
-            "| ODC-0003 | benchmark | Cross-backend benchmark contract | P0 | BACKLOG | P0 | ODC-9999 |",
+        lambda root: replace_in_row(
+            root / "Tickets.md", "ODC-0003", "| ODC-0002 |", "| ODC-9999 |"
         ),
     )
 

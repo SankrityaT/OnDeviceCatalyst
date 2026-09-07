@@ -14,12 +14,18 @@ import XCTest
 final class D3ReadyStreamLifecycleCharacterizationTests: XCTestCase {
 
     /// CHARACTERIZATION D3 (ODC-0012)
-    /// Today: after .ready is delivered, the loading stream does not
+    /// Today: (post-repair) the gate is `progress.isComplete`, so the stream
+    ///        finishes after .ready, within the bound. Before this repair,
+    ///        after .ready was delivered the loading stream did not
     ///        terminate within a bounded wait, so a consumer awaiting
-    ///        termination hangs -- the unsatisfiable gate at publishProgress
-    ///        (:583) never finishes loadingContinuation on the success path
-    ///        either.
-    /// Should be: the stream finishes after .ready.
+    ///        termination would hang -- the unsatisfiable gate at
+    ///        publishProgress (:583) never finished loadingContinuation on
+    ///        the success path either.
+    /// Should be: exactly what "Today" now states -- the stream finishes
+    ///        after .ready, within the bound. Still unexecuted in CI:
+    ///        reaching .ready requires a model that actually loads, which
+    ///        needs the device-execution mechanism ODC-0021 owns (spec Q3);
+    ///        this case remains SKIP[requires-device] until that lands.
     /// Evidence: Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift:580-587
     func test_characterizes_afterReady_loadingStream_doesNotTerminate__ODC_0012() async throws {
         try requireDevice()

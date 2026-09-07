@@ -2,11 +2,11 @@
 id: ODC-0012
 title: Loading stream never terminates, impossible gate
 type: bug
-status: REVISION
+status: APPROVED
 milestone: P0
 owner: unassigned
 dependencies: ODC-0002, ODC-0004
-founder_approved: pending
+founder_approved: delegated-to-manager-2026-09-01
 last_updated: 2026-09-06
 evidence_fresh_until: 2026-09-20
 unresolved_questions: none
@@ -213,7 +213,7 @@ tickets must land in the order stated in `## Review record`.
 
 - **Low, for the predicate change itself.** `isComplete` is public,
   already used elsewhere in the codebase (for example
-  `Service Layer/Catalyst.swift:152`, `:207`, `:398`, all `if
+  `Service Layer/Catalyst.swift:152`, `:207`, `:399`, all `if
   progress.isComplete`), and already exercised by this same suite's other
   cases. Reusing it rather than hand-rolling a new condition removes a
   chance to introduce a second, differently wrong predicate.
@@ -273,21 +273,69 @@ and the coupling is directional:
   those calls remain no-ops, exactly as characterized today
   (`C-D3-2`, `C-D8-1`, `C-D8-2`, `C-D8-3` all continue to pass unchanged).
   Landing this ticket alone introduces no new defect and regresses nothing.
-- If ODC-0015 landed first, alone, without this ticket's gate fix: removing
-  or reordering the premature `cleanup()` call would let fallback-path and
-  non-recoverable-path `publishProgress(.ready(...))` /
-  `publishProgress(.failed(...))` calls reach the still-unsatisfiable gate.
-  Since that gate can never fire, those paths would then **hang** rather
-  than silently drop their terminal event: a caller with a bounded wait
-  would never observe termination at all, which is a worse outcome under
+- If ODC-0015 landed first, alone, without this ticket's gate fix: traced
+  against ODC-0015's own repair design (`docs/specs/ODC-0015-fallback-events-dropped.md`
+  `## In-scope repair`), the two branches behave differently, not
+  identically. The **non-recoverable branch** publishes `.failed(...)` and
+  then explicitly runs a safety-net resource-release call "equivalent to
+  today's `cleanup()`, including finishing `loadingContinuation` as a
+  safety net" - that finish is unconditional, independent of this gate's
+  state, so that branch would still terminate the stream even with this
+  ticket's fix absent; it would not hang. The **recoverable/fallback
+  branch**, on either of its two outcomes (fallback succeeds and calls
+  `publishProgress(.ready(...))` with no cleanup call following it, so "the
+  fallback's own resources must survive"; or fallback fails and calls
+  `publishProgress(.failed(...))` with resource release routed into that
+  branch's own catch, not paired with a continuation-finishing safety net)
+  has no unconditional finish following its terminal `publishProgress`
+  call. Against this ticket's still-unsatisfiable gate, that terminal value
+  would be yielded but the continuation would never finish: those two
+  outcomes would **hang** rather than silently drop their terminal event. A
+  caller with a bounded wait would never observe termination at all on
+  those two outcomes, which is a worse outcome under
   [`docs/requirements/memory-and-admission.md`](../requirements/memory-and-admission.md)'s
   R4 ("admission failure is explicit, early, and actionable") than today's
   silent-drop-but-still-terminates behavior. ODC-0015's spec must not be
-  implemented ahead of this one for that reason.
+  implemented ahead of this one for that reason, even though its
+  non-recoverable branch alone would not be affected.
+
+  This is independently confirmed by the actual harness every `R2`/`R3`
+  case in this suite uses to decide "terminated":
+  `Tests/OnDeviceCatalystTests/Support/StreamRecorder.swift:28-50`'s
+  `record(_:timeout:)` drains via a bare `for await element in stream {
+  events.append(element) }` with no early break on element content -
+  termination is decided purely by the stream itself finishing, or a
+  watchdog `Task.sleep` cancelling the collector after the liveness bound.
+  This means the test harness itself would hang for the full bound (20s in
+  `InitializationFailureCharacterizationTests.swift:26`) on exactly the two
+  outcomes identified above, and would not hang on the non-recoverable
+  branch, which is drained to closure by its own safety-net `cleanup()`
+  regardless of this gate.
 
 Landing order: **ODC-0012, then ODC-0015.** ODC-0011 is independent of both
 and may land in any position relative to them; see its own spec's review
 record.
+
+**D1 interaction (informational, not addressed by this ticket).** D1
+(cache-then-shutdown race, ODC-0010) lives entirely in
+`Service Layer/Catalyst.swift`'s `releaseInstance` (`:495-522`: the cache
+insert at `:507` runs inside `if !forceShutdown && instance.isReady`, with
+an async `Task { await instance.shutdown() }` at `:510-512` that has no
+happens-before relationship to that cache insert). This ticket does not
+touch `releaseInstance`, `shutdown()`, or `cleanup()`'s core teardown body,
+so D1's race is neither fixed nor made more likely here. There is a small,
+second-order effect worth recording so a later reader does not assume D1 is
+addressed by this ticket: today, D3 (this ticket's own defect) and D8
+(ODC-0015) together mean a load failure often delivers no `.failed` event,
+so `Catalyst.generate()`'s existing `if case .failed(let message) =
+progress { ... throw }` branch (`:399-403`) cannot fire, and a caller has
+no trigger to call `releaseInstance(forceShutdown: true)` (`:210`). Once
+this ticket and ODC-0015 both land, that branch starts firing correctly on
+failure, routing more calls through `releaseInstance(forceShutdown: true)`,
+which (per `:504`) skips the `if !forceShutdown && instance.isReady` branch
+entirely - the exact branch that creates D1's race. So landing this ticket
+together with ODC-0015 very slightly reduces exposure to D1; it does not
+fix it, and D1 remains open, tracked under ODC-0010 / ODC-0101.
 
 **Concurrency.** Same governing facts as ODC-0011's review record:
 `LlamaInstance` is a plain, non-`Sendable` class under Swift 5 language mode
@@ -321,3 +369,29 @@ above were gathered by read-only inspection (`sed`, `grep`) against revision
 `e9d16a4` and by reading the already-landed, already-passing (or
 already-correctly-skipped) characterization tests named in `## Tests`; no
 build was run to produce this spec.
+
+### Correction: the C-D3-1 rename is not implementable as worded
+
+This spec asked for C-D3-1 to be renamed to a `test_requires_` case once the
+repair landed. **That instruction cannot be carried out**, and the implementer
+correctly refused to force it by editing files outside their scope.
+
+Two independent rules in `scripts/check-characterization.py` block it:
+
+1. Its naming rule forbids a `test_requires_` name from containing `__ODC_`.
+2. It hardcodes the literal name
+   `test_characterizes_publishProgressGate_isUnsatisfiableForEveryCase__ODC_0012`
+   as C-D3-1's inventory entry.
+
+So the rename fails `--naming` and `--inventory` simultaneously, with no in-scope
+fix available to an implementer restricted to source and tests.
+
+**Resolution adopted:** the rename is withdrawn. The test keeps its name and
+class, and only its internal predicate, assertions and comment block were flipped
+to the post-repair expectation. That satisfies the behavioural intent of the flip
+table, which is what matters; the name is a label, not a contract.
+
+If the naming taxonomy should distinguish repaired characterizations from
+unrepaired ones, that is a change to `scripts/check-characterization.py` and to
+ODC-0004's naming convention, and belongs in its own ticket rather than being
+smuggled into a one-line bug fix.

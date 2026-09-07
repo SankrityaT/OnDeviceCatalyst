@@ -29,8 +29,8 @@
       "ticket": "ODC-0012",
       "file": "Sources/OnDeviceCatalyst/Core Engine/LlamaInstance.swift",
       "anchor": "private func publishProgress\\(",
-      "note": "publishProgress gates on `if case .ready = progress, case .failed = progress`, an AND over one value, unsatisfiable",
-      "sha256": "fc380539a958abe46cd74121d6136be06ee0d97e34e66ffea846dd5b49b81a1a"
+      "note": "publishProgress terminates the loading stream via progress.isComplete. REPAIRED under ODC-0012; the prior gate was an unsatisfiable AND over one value.",
+      "sha256": "c5e76c22e58352bbb737afbffc91de3a2e81354cd95bed013092f35809c6a5b2"
     },
     {
       "id": "F-D8-1",

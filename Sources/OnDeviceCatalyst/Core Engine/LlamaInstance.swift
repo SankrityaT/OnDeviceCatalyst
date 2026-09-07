@@ -580,7 +580,7 @@ public class LlamaInstance {
     private func publishProgress(_ progress: LoadProgress) {
         loadingContinuation?.yield(progress)
 
-        if case .ready = progress, case .failed = progress {
+        if progress.isComplete {
             loadingContinuation?.finish()
             loadingContinuation = nil
         }

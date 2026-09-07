@@ -2,7 +2,7 @@
 id: ODC-0015
 title: Fallback-path progress events are silent no-ops
 type: bug
-status: SPEC_DRAFT
+status: REVISION
 milestone: P0
 owner: unassigned
 dependencies: ODC-0002, ODC-0004, ODC-0012

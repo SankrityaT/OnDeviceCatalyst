@@ -2,7 +2,7 @@
 id: ODC-0012
 title: Loading stream never terminates, impossible gate
 type: bug
-status: SPEC_DRAFT
+status: REVISION
 milestone: P0
 owner: unassigned
 dependencies: ODC-0002, ODC-0004

@@ -2,7 +2,7 @@
 id: ODC-0011
 title: Generation emits duplicate terminal completions
 type: bug
-status: SPEC_DRAFT
+status: REVISION
 milestone: P0
 owner: unassigned
 dependencies: ODC-0002, ODC-0004

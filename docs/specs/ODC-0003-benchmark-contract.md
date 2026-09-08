@@ -1194,3 +1194,33 @@ This spec can be approved without either question closing, per program rule:
 an approved spec states its open questions rather than assuming them away.
 Execution cannot begin until both are closed, and `## Reproduction procedure`
 step 1 through 3 are exactly the commands that close them.
+
+## Correction: an execution surface exists and always did
+
+**Recorded 2026-09-08.** This spec states that no execution surface exists on
+which this package has run inference with either backend. That is **too strong**,
+and the error is a conflation the baseline does not support.
+
+What the ODC-0002 baseline actually establishes is narrower: **no cell in the
+build matrix ever executed inference.** Every cell is a build, not a run. The
+simulator cell links a stub and therefore cannot infer, and the macOS cell does
+not build at all. Neither fact says anything about the device path.
+
+The device cell (`arm64-apple-ios17.0`) **compiles cleanly against the real
+xcframework slice**, 17,151,376 bytes and 16,870 symbols, not the 7,936-byte
+stub. Separately, the package owner reports it running in a shipping iOS
+application (SeeMe) built through Xcode, which is consistent with every
+measurement in the baseline and with ODC-0004's Q2 finding that `xcodebuild`
+does compile the Metal shaders while SwiftPM does not.
+
+Consequences:
+
+1. The benchmark contract must not claim the package has never run. It must say
+   that **this project has never executed a measured, manifest-recorded inference
+   run**, which is the real gap and the one this ticket exists to close.
+2. A shipping consumer is evidence the device path works, but it is not a
+   benchmark: no pinned revision, no manifest, no recorded configuration. Field
+   evidence and a citable measurement are different things, and conflating them
+   in the other direction would be the same error inverted.
+3. ODC-0021 becomes narrower. Establishing a device execution surface is about
+   reproducible instrumented runs, not about whether the code can run at all.
